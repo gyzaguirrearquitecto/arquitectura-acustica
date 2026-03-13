@@ -1,0 +1,2251 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arquitectura Acústica — Calculadora Integral + Expediente WELL</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&family=Syne:wght@700;800&display=swap');
+:root {
+  --navy:#0a0e1a; --navy-mid:#111827; --navy-light:#1a2744;
+  --teal:#00e5cc; --teal-dim:#009d8e; --teal-glow:rgba(0,229,204,0.12);
+  --amber:#f59e0b; --amber-dim:#c97d08;
+  --rose:#f43f5e; --green:#10b981; --purple:#a78bfa; --blue:#3b82f6;
+  --text-primary:#e8edf5; --text-secondary:#7a8fad;
+  --border:rgba(0,229,204,0.14); --card-bg:rgba(14,20,36,0.92);
+  --grid:rgba(0,229,204,0.05);
+  --fm:'Space Mono',monospace; --fs:'DM Sans',sans-serif; --fd:'Syne',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:var(--fs);background:var(--navy);color:var(--text-primary);
+  min-height:100vh;overflow-x:hidden;
+  background-image:
+    repeating-linear-gradient(0deg,transparent,transparent 79px,var(--grid) 79px,var(--grid) 80px),
+    repeating-linear-gradient(90deg,transparent,transparent 79px,var(--grid) 79px,var(--grid) 80px);
+}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--navy)}::-webkit-scrollbar-thumb{background:var(--teal-dim);border-radius:3px}
+
+/* ── HEADER ── */
+header{
+  position:sticky;top:0;z-index:200;height:60px;
+  background:rgba(10,14,26,0.97);backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;padding:0 1.5rem;
+}
+.logo{font-family:var(--fd);font-size:1.25rem;font-weight:800;letter-spacing:-0.02em;display:flex;align-items:center;gap:.5rem}
+.logo-sq{width:28px;height:28px;border:2px solid var(--teal);border-radius:5px;display:grid;place-items:center;font-size:.7rem;color:var(--teal)}
+.logo em{color:var(--teal);font-style:normal}
+.hbadge{font-family:var(--fm);font-size:.6rem;padding:2px 8px;border:1px solid var(--amber);color:var(--amber);border-radius:3px;letter-spacing:.1em}
+
+/* ── NAV ── */
+.nav-tabs{display:flex;background:rgba(0,0,0,.35);border:1px solid var(--border);border-radius:7px;overflow:hidden;flex-wrap:wrap}
+.nav-tab{
+  padding:.38rem .95rem;font-family:var(--fm);font-size:.62rem;letter-spacing:.07em;
+  background:transparent;color:var(--text-secondary);border:none;cursor:pointer;
+  transition:all .18s;border-right:1px solid var(--border);white-space:nowrap;
+}
+.nav-tab:last-child{border-right:none}
+.nav-tab.active{background:var(--teal);color:var(--navy);font-weight:700}
+.nav-tab:hover:not(.active){color:var(--teal);background:rgba(0,229,204,.07)}
+
+/* ── MAIN ── */
+main{max-width:1480px;margin:0 auto;padding:1.5rem}
+.section{display:none}.section.active{display:block}
+
+/* ── CARDS ── */
+.card{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:1.4rem;backdrop-filter:blur(6px)}
+.card+.card{margin-top:1rem}
+.ct{font-family:var(--fm);font-size:.68rem;letter-spacing:.12em;color:var(--teal);text-transform:uppercase;margin-bottom:1.1rem;display:flex;align-items:center;gap:.5rem}
+.ct::before{content:'';display:inline-block;width:3px;height:13px;background:var(--teal);border-radius:2px}
+
+/* ── GRIDS ── */
+.g2{display:grid;grid-template-columns:repeat(2,1fr);gap:1rem}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:.9rem}
+.g65{display:grid;grid-template-columns:1.55fr 1fr;gap:1rem}
+.g35{display:grid;grid-template-columns:1fr 1.6fr;gap:1rem}
+@media(max-width:960px){.g2,.g3,.g4,.g65,.g35{grid-template-columns:1fr}}
+
+/* ── FORM ── */
+.fg{display:flex;flex-direction:column;gap:.3rem}
+.fl{font-family:var(--fm);font-size:.62rem;letter-spacing:.1em;color:var(--text-secondary);text-transform:uppercase}
+.fi,.fs{
+  background:rgba(0,0,0,.45);border:1px solid rgba(0,229,204,.18);border-radius:6px;
+  padding:.5rem .75rem;color:var(--text-primary);font-family:var(--fm);font-size:.82rem;
+  outline:none;transition:border-color .18s;width:100%;appearance:none;
+}
+.fi:focus,.fs:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(0,229,204,.09)}
+.fi::placeholder{color:var(--text-secondary);opacity:.45}
+.fs option{background:var(--navy-mid)}
+.unit{font-family:var(--fm);font-size:.6rem;color:var(--text-secondary)}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:.45rem;padding:.6rem 1.3rem;border-radius:7px;border:none;cursor:pointer;font-family:var(--fm);font-size:.72rem;letter-spacing:.07em;font-weight:700;transition:all .18s}
+.btn-p{background:var(--teal);color:var(--navy)}.btn-p:hover{background:var(--teal-dim);transform:translateY(-1px);box-shadow:0 6px 20px rgba(0,229,204,.28)}
+.btn-a{background:var(--amber);color:var(--navy)}.btn-a:hover{background:var(--amber-dim);transform:translateY(-1px)}
+.btn-g{background:transparent;border:1px solid var(--border);color:var(--text-secondary)}.btn-g:hover{border-color:var(--teal);color:var(--teal)}
+.btn-v{background:rgba(167,139,250,.12);border:1px solid rgba(167,139,250,.3);color:var(--purple)}.btn-v:hover{background:rgba(167,139,250,.2)}
+
+/* ── METRICS ── */
+.mc{background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:9px;padding:.9rem;text-align:center}
+.mv{font-family:var(--fm);font-size:1.65rem;font-weight:700;line-height:1;margin-bottom:.25rem}
+.ml{font-size:.68rem;color:var(--text-secondary);letter-spacing:.05em;text-transform:uppercase}
+.mg{color:var(--green)}.mw{color:var(--amber)}.mb{color:var(--rose)}.mt{color:var(--teal)}
+
+/* ── BADGES ── */
+.sb{display:inline-flex;align-items:center;gap:.3rem;padding:2px 9px;border-radius:20px;font-family:var(--fm);font-size:.62rem;font-weight:700;letter-spacing:.08em}
+.sok{background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.28)}
+.swarn{background:rgba(245,158,11,.12);color:var(--amber);border:1px solid rgba(245,158,11,.28)}
+.sfail{background:rgba(244,63,94,.12);color:var(--rose);border:1px solid rgba(244,63,94,.28)}
+.sinfo{background:rgba(59,130,246,.12);color:var(--blue);border:1px solid rgba(59,130,246,.28)}
+.dot{width:5px;height:5px;border-radius:50%;background:currentColor}
+
+/* ── TABLES ── */
+table{width:100%;border-collapse:collapse}
+th{font-family:var(--fm);font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--teal);padding:.45rem .65rem;text-align:right;border-bottom:1px solid var(--border)}
+th:first-child{text-align:left}
+td{font-family:var(--fm);font-size:.74rem;padding:.4rem .65rem;border-bottom:1px solid rgba(0,229,204,.05);text-align:right;color:var(--text-secondary)}
+td:first-child{text-align:left;color:var(--text-primary)}
+tr:hover td{background:rgba(0,229,204,.03)}
+.vg{color:var(--green)}.vw{color:var(--amber)}.vb{color:var(--rose)}.vt{color:var(--teal)}
+
+/* ── CHART WRAP ── */
+.cw{position:relative;background:rgba(0,0,0,.22);border-radius:8px;padding:.9rem;border:1px solid var(--border)}
+.cht{font-family:var(--fm);font-size:.62rem;color:var(--teal);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.7rem}
+
+/* ── VALIDATION DASHBOARD ── */
+.vd-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:.8rem;margin-bottom:1.5rem}
+@media(max-width:1100px){.vd-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:700px){.vd-grid{grid-template-columns:1fr 1fr}}
+.vd-card{
+  background:var(--card-bg);border:1px solid var(--border);border-radius:10px;
+  padding:1rem;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;
+}
+.vd-card:hover{border-color:var(--teal);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,229,204,.12)}
+.vd-card.active-vd{border-color:var(--teal);box-shadow:0 0 0 2px rgba(0,229,204,.18)}
+.vd-icon{font-size:1.8rem;margin-bottom:.5rem}
+.vd-name{font-family:var(--fd);font-size:.9rem;font-weight:700;margin-bottom:.25rem}
+.vd-param{font-family:var(--fm);font-size:.62rem;color:var(--teal);margin-bottom:.4rem}
+.vd-desc{font-size:.72rem;color:var(--text-secondary);line-height:1.45;margin-bottom:.7rem}
+.vd-score{
+  position:absolute;top:.8rem;right:.8rem;
+  width:36px;height:36px;border-radius:50%;
+  display:grid;place-items:center;
+  font-family:var(--fm);font-size:.65rem;font-weight:700;
+  border:2px solid currentColor;
+}
+.vd-bar{height:4px;background:rgba(255,255,255,.08);border-radius:2px;overflow:hidden;margin-top:.5rem}
+.vd-fill{height:100%;border-radius:2px;transition:width .8s ease}
+
+/* ── SURFACE MAP ── */
+.smap{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:auto auto auto;gap:.5rem}
+.smap-cell{background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:6px;padding:.6rem;font-family:var(--fm);font-size:.65rem;text-align:center}
+.smap-cell .area{color:var(--amber);font-size:.7rem;display:block;margin-top:.2rem}
+.smap-cell .mat{color:var(--teal);font-size:.6rem;display:block;margin-top:.15rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.smap-cell.center-cell{border-style:dashed;color:var(--text-secondary)}
+
+/* ── RECOMMENDATION BOX ── */
+.rec-box{
+  background:linear-gradient(135deg,rgba(0,229,204,.06),rgba(167,139,250,.06));
+  border:1px solid rgba(0,229,204,.2);border-radius:10px;padding:1.2rem;margin-top:1rem;
+}
+.rec-title{font-family:var(--fd);font-weight:700;font-size:.95rem;margin-bottom:.8rem;display:flex;align-items:center;gap:.5rem}
+.rec-item{display:flex;align-items:flex-start;gap:.7rem;padding:.55rem 0;border-bottom:1px solid rgba(0,229,204,.07)}
+.rec-item:last-child{border-bottom:none}
+.rec-num{
+  width:22px;height:22px;border-radius:50%;background:var(--teal);color:var(--navy);
+  display:grid;place-items:center;font-family:var(--fm);font-size:.65rem;font-weight:700;flex-shrink:0;margin-top:1px;
+}
+.rec-text{flex:1}
+.rec-mat{font-weight:600;font-size:.85rem;margin-bottom:.15rem}
+.rec-detail{font-family:var(--fm);font-size:.68rem;color:var(--text-secondary)}
+.rec-qty{font-family:var(--fm);font-size:.68rem;color:var(--amber);margin-top:.15rem}
+
+/* ── QUANTITIES TABLE ── */
+.qt-row{display:grid;grid-template-columns:2.2fr .9fr .9fr 1fr .9fr;gap:.4rem;align-items:center;padding:.5rem 0;border-bottom:1px solid rgba(0,229,204,.06);font-family:var(--fm);font-size:.72rem}
+.qt-h{color:var(--teal);font-size:.6rem;letter-spacing:.08em;text-transform:uppercase}
+.qt-v{color:var(--amber);text-align:right}
+.qt-t{text-align:right}
+@media(max-width:700px){.qt-row{grid-template-columns:1.5fr 1fr 1fr}}
+
+/* ── WELL REPORT ── */
+.ws-block{border-left:3px solid var(--teal);padding-left:1.1rem;margin-bottom:1.4rem}
+.ws-title{font-family:var(--fd);font-size:1.05rem;font-weight:700;margin-bottom:.7rem;display:flex;align-items:center;gap:.5rem}
+.ci{display:flex;align-items:flex-start;gap:.7rem;padding:.6rem 0;border-bottom:1px solid rgba(0,229,204,.06)}
+.ci-check{width:20px;height:20px;border-radius:50%;flex-shrink:0;display:grid;place-items:center;font-size:.65rem;font-weight:700;margin-top:1px}
+.cok{background:rgba(16,185,129,.18);color:var(--green);border:1px solid rgba(16,185,129,.35)}
+.cwarn{background:rgba(245,158,11,.18);color:var(--amber);border:1px solid rgba(245,158,11,.35)}
+.cfail{background:rgba(244,63,94,.18);color:var(--rose);border:1px solid rgba(244,63,94,.35)}
+.ci-body{flex:1}
+.ci-t{font-size:.83rem;font-weight:500;margin-bottom:.18rem}
+.ci-d{font-family:var(--fm);font-size:.68rem;color:var(--text-secondary)}
+
+/* ── SPL MAP ── */
+#splCanvas{display:block;width:100%;height:200px;border-radius:8px}
+
+/* ── REPORT HEADER ── */
+.rh{
+  background:linear-gradient(135deg,var(--navy-light),var(--navy-mid));
+  border:1px solid var(--border);border-radius:12px;padding:1.8rem;margin-bottom:1.4rem;
+  position:relative;overflow:hidden;
+}
+.rh::before{
+  content:'';position:absolute;top:-60%;right:-5%;
+  width:280px;height:280px;
+  background:radial-gradient(circle,rgba(0,229,204,.07) 0%,transparent 70%);
+  border-radius:50%;
+}
+.rh-num{font-family:var(--fm);font-size:.6rem;color:var(--teal);letter-spacing:.2em;margin-bottom:.4rem}
+.rh-title{font-family:var(--fd);font-size:1.8rem;font-weight:800;letter-spacing:-.03em;margin-bottom:.4rem}
+
+/* ── TOOLTIP ── */
+.tooltip-trigger{position:relative;display:inline-flex;align-items:center;margin-left:.3rem;cursor:help}
+.tooltip-trigger .tip{
+  position:absolute;bottom:120%;left:50%;transform:translateX(-50%);
+  background:rgba(10,14,26,.98);border:1px solid var(--border);
+  color:var(--text-primary);font-family:var(--fs);font-size:.75rem;
+  padding:.6rem .8rem;border-radius:7px;width:260px;line-height:1.5;
+  opacity:0;pointer-events:none;transition:opacity .2s;z-index:999;
+}
+.tooltip-trigger:hover .tip{opacity:1}
+.tip-icon{width:14px;height:14px;border-radius:50%;background:rgba(0,229,204,.18);color:var(--teal);display:grid;place-items:center;font-size:.6rem;font-family:var(--fm);font-weight:700}
+
+/* ── PROGRESS ── */
+.pbar{height:5px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden;margin:.35rem 0}
+.pfill{height:100%;border-radius:3px;transition:width .7s ease}
+
+/* ── TOAST ── */
+#toast{
+  position:fixed;bottom:1.5rem;right:1.5rem;z-index:9999;
+  background:var(--teal);color:var(--navy);
+  font-family:var(--fm);font-size:.75rem;font-weight:700;
+  padding:.75rem 1.4rem;border-radius:8px;
+  transform:translateY(100px);opacity:0;transition:all .28s;
+}
+#toast.show{transform:translateY(0);opacity:1}
+
+/* ── TABS WITHIN SECTIONS ── */
+.inner-tabs{display:flex;gap:.5rem;margin-bottom:1.2rem;flex-wrap:wrap}
+.inner-tab{
+  padding:.35rem .9rem;font-family:var(--fm);font-size:.65rem;border-radius:5px;
+  background:transparent;border:1px solid var(--border);color:var(--text-secondary);cursor:pointer;transition:all .15s
+}
+.inner-tab.active{background:var(--navy-light);border-color:var(--teal);color:var(--teal)}
+.inner-tab:hover:not(.active){color:var(--text-primary)}
+.inner-panel{display:none}.inner-panel.active{display:block}
+
+/* ── SURFACE ROW ── */
+.srow{display:grid;grid-template-columns:130px 1fr 120px 90px;gap:.65rem;align-items:center;padding:.5rem 0;border-bottom:1px solid rgba(0,229,204,.06)}
+.srow-lbl{font-family:var(--fm);font-size:.67rem;color:var(--text-secondary);text-transform:uppercase}
+.srow-area{font-family:var(--fm);font-size:.7rem;color:var(--amber);text-align:right}
+.alpha-preview{font-family:var(--fm);font-size:.6rem;color:var(--teal)}
+@media(max-width:700px){.srow{grid-template-columns:1fr 1fr}}
+
+/* ── MOUNT SELECTOR ── */
+.mount-option{border:2px solid rgba(0,229,204,.15);border-radius:10px;padding:1rem;cursor:pointer;transition:all .2s;background:rgba(0,0,0,.2)}
+.mount-option:hover{border-color:rgba(0,229,204,.4);background:rgba(0,229,204,.04)}
+.mount-option.selected{border-color:var(--teal);background:rgba(0,229,204,.07);box-shadow:0 0 0 3px rgba(0,229,204,.1)}
+
+/* ── DIVIDER ── */
+hr{border:none;border-top:1px solid var(--border);margin:1.2rem 0}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════ HEADER ══════════════════ -->
+<header>
+  <div class="logo">
+    <div class="logo-sq">AA</div>
+    Arquitectura <em>Acústica</em>
+  </div>
+  <nav class="nav-tabs">
+    <button class="nav-tab active" onclick="showSec('dashboard')">🎯 TABLERO</button>
+    <button class="nav-tab" onclick="showSec('entrada')">📐 ENTRADA</button>
+    <button class="nav-tab" onclick="showSec('resultados')">📊 RESULTADOS</button>
+    <button class="nav-tab" onclick="showSec('recomendaciones')">💡 PROPUESTA</button>
+    <button class="nav-tab" onclick="showSec('expediente')">📋 EXPEDIENTE WELL</button>
+  </nav>
+  <span class="hbadge">ISO 3382 · ASTM E90 · IEC 60268-16 · WELL v2</span>
+</header>
+
+<main>
+
+<!-- ══════════════ 0. TABLERO DE VALIDACIÓN ══════════════ -->
+<div id="dashboard" class="section active">
+
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.4rem;flex-wrap:wrap;gap:1rem">
+    <div>
+      <h1 style="font-family:var(--fd);font-size:1.6rem;font-weight:800;letter-spacing:-.02em">Tablero de Validación Acústica</h1>
+      <p style="color:var(--text-secondary);font-size:.85rem;margin-top:.3rem">5 pruebas de ingeniería para un diseño técnicamente blindado — haz clic en cada módulo para ir al análisis</p>
+    </div>
+    <button class="btn btn-p" onclick="calculateAll();showSec('resultados')">▶ CALCULAR TODO</button>
+  </div>
+
+  <!-- 5 módulos de validación -->
+  <div class="vd-grid" id="vdGrid">
+    <!-- generados por JS -->
+  </div>
+
+  <!-- Resumen de estado global -->
+  <div class="g65" style="margin-top:.5rem">
+    <div class="card">
+      <div class="ct">Estado del Proyecto</div>
+      <div class="g4" style="margin-bottom:1rem" id="dashScores">
+        <div class="mc"><div class="mv mt" id="ds_rt">—</div><div class="ml">RT₆₀</div></div>
+        <div class="mc"><div class="mv mt" id="ds_spl">—</div><div class="ml">SPL</div></div>
+        <div class="mc"><div class="mv mt" id="ds_stc">—</div><div class="ml">STC</div></div>
+        <div class="mc"><div class="mv mt" id="ds_sti">—</div><div class="ml">STI</div></div>
+      </div>
+      <div id="ds_summary" style="font-size:.82rem;color:var(--text-secondary);line-height:1.6">
+        Complete los datos de entrada y ejecute el cálculo para ver el estado del proyecto.
+      </div>
+      <div id="dashGlobal" style="margin-top:1rem"></div>
+    </div>
+    <div class="card">
+      <div class="ct">Flujo de Trabajo</div>
+      <div style="display:flex;flex-direction:column;gap:.7rem">
+        <div class="rec-item" style="cursor:pointer" onclick="showSec('entrada')">
+          <div class="rec-num">1</div>
+          <div class="rec-text"><div class="rec-mat">Definir geometría y uso</div><div class="rec-detail">Dimensiones L×W×H, tipo de espacio, niveles de ruido</div></div>
+        </div>
+        <div class="rec-item" style="cursor:pointer" onclick="calculateAll();showSec('resultados')">
+          <div class="rec-num">2</div>
+          <div class="rec-text"><div class="rec-mat">Calcular diagnóstico</div><div class="rec-detail">RT₆₀, STI, SPL, Modos, STC compuesto</div></div>
+        </div>
+        <div class="rec-item" style="cursor:pointer" onclick="showSec('recomendaciones')">
+          <div class="rec-num">3</div>
+          <div class="rec-text"><div class="rec-mat">Ver propuesta de materiales</div><div class="rec-detail">Motor de recomendación + cómputo de obra completo</div></div>
+        </div>
+        <div class="rec-item" style="cursor:pointer" onclick="showSec('expediente')">
+          <div class="rec-num">4</div>
+          <div class="rec-text"><div class="rec-mat">Generar Expediente WELL</div><div class="rec-detail">Informe técnico para certificación WELL v2</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ 1. ENTRADA ══════════════ -->
+<div id="entrada" class="section">
+  <h2 style="font-family:var(--fd);font-size:1.35rem;font-weight:800;margin-bottom:.3rem">Datos de Entrada del Proyecto</h2>
+  <p style="color:var(--text-secondary);font-size:.83rem;margin-bottom:1.3rem">Complete los tres bloques: geometría del espacio, materiales de sus superficies y composición del muro hacia el exterior.</p>
+
+  <!-- ── BLOQUE 1: Geometría ───────────────────────────────── -->
+  <div class="g65" style="margin-bottom:1rem">
+    <div class="card">
+      <div class="ct">① Geometría y Uso del Espacio</div>
+      <div class="g3" style="margin-bottom:1rem">
+        <div class="fg"><label class="fl">Largo (L)</label><input class="fi" id="dimL" type="number" value="8.5" step="0.1" min="2"><span class="unit">metros</span></div>
+        <div class="fg"><label class="fl">Ancho (W)</label><input class="fi" id="dimW" type="number" value="6.2" step="0.1" min="2"><span class="unit">metros</span></div>
+        <div class="fg"><label class="fl">Alto (H)</label><input class="fi" id="dimH" type="number" value="3.1" step="0.1" min="2"><span class="unit">metros</span></div>
+      </div>
+      <div class="g2" style="margin-bottom:1rem">
+        <div class="fg">
+          <label class="fl">Tipo de Espacio</label>
+          <select class="fs" id="roomUse" onchange="updateTargets()">
+            <option value="oficina">Oficina Abierta</option>
+            <option value="sala_reuniones">Sala de Reuniones</option>
+            <option value="aula">Aula Educativa</option>
+            <option value="auditorio">Auditorio / Conferencias</option>
+            <option value="estudio">Estudio de Grabación</option>
+            <option value="restaurante">Restaurante / Cafetería</option>
+            <option value="consultorio">Consultorio Médico</option>
+            <option value="open_office">Open Office / Co-working</option>
+          </select>
+          <span class="unit">Define el RT₆₀ objetivo (ISO 3382-2) y los requisitos WELL</span>
+        </div>
+        <div class="fg">
+          <label class="fl">Nivel Ruido de Fondo</label>
+          <input class="fi" id="bgNoise" type="number" value="35" min="20" max="85"
+            oninput="this.dataset.manuallyEdited='true'">
+          <span class="unit">dB·A — Equipos HVAC + exterior. Se completa automáticamente según el tipo de espacio.</span>
+        </div>
+      </div>
+
+      <!-- Señal directa — automática, con override opcional -->
+      <div style="background:rgba(0,229,204,.04);border:1px solid rgba(0,229,204,.12);border-radius:8px;padding:.9rem;margin-top:.2rem">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;margin-bottom:.5rem">
+          <div>
+            <div class="fl" style="margin-bottom:.2rem">Nivel de señal sonora — asignado automáticamente</div>
+            <div id="sigNote" style="font-family:var(--fm);font-size:.72rem;color:var(--teal)">65 dB·A — Voz conversacional</div>
+          </div>
+          <button class="btn btn-g" style="font-size:.62rem;padding:.3rem .8rem"
+            onclick="document.getElementById('audioOverride').style.display=document.getElementById('audioOverride').style.display==='none'?'flex':'none'">
+            ⚙ Tiene sistema de audio
+          </button>
+        </div>
+        <div style="font-size:.77rem;color:var(--text-secondary);line-height:1.5">
+          Este valor se ajusta automáticamente según el tipo de espacio. No necesita modificarlo a menos que el proyecto tenga un sistema de audio amplificado especial.
+        </div>
+        <!-- Override manual — oculto por defecto -->
+        <div id="audioOverride" style="display:none;align-items:center;gap:.8rem;margin-top:.8rem;padding-top:.8rem;border-top:1px solid rgba(0,229,204,.1)">
+          <div class="fg" style="max-width:200px">
+            <label class="fl">Nivel de audio del sistema (dB·A)</label>
+            <input class="fi" id="sigLevelOverride" type="number" placeholder="Ej: 85" min="50" max="110" step="1">
+          </div>
+          <div style="font-size:.75rem;color:var(--text-secondary);line-height:1.5;max-width:280px">
+            Solo si hay parlantes, micrófonos o sistema de refuerzo sonoro. Medir a 1m de la fuente más cercana al oyente. App recomendada: <strong style="color:var(--text-primary)">NIOSH SLM</strong> (iOS) o <strong style="color:var(--text-primary)">Decibel X</strong> (Android).
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Parámetros derivados -->
+    <div class="card">
+      <div class="ct">Parámetros Calculados</div>
+      <div style="display:grid;gap:.7rem">
+        <div class="mc"><div class="mv" id="mVol" style="color:var(--teal)">—</div><div class="ml">Volumen (m³)</div></div>
+        <div class="mc"><div class="mv" id="mArea" style="color:var(--teal)">—</div><div class="ml">Área Total Interior (m²)</div></div>
+        <div class="mc"><div class="mv" id="mTarget" style="font-size:1.1rem;color:var(--amber)">—</div><div class="ml">RT₆₀ Objetivo — ISO 3382</div></div>
+        <div class="mc"><div class="mv" id="mStcMin" style="font-size:1.1rem;color:var(--amber)">—</div><div class="ml">Aislamiento Mínimo WELL</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── BLOQUE 2: Materiales por Superficie ───────────────── -->
+  <div class="card" style="margin-bottom:1rem">
+    <div class="ct">② Materiales de las Superficies del Recinto</div>
+
+    <!-- Explicación contextual -->
+    <div style="background:rgba(0,229,204,.05);border:1px solid rgba(0,229,204,.15);border-radius:8px;padding:1rem;margin-bottom:1.2rem">
+      <div style="display:flex;gap:1rem;align-items:flex-start;flex-wrap:wrap">
+        <div style="flex:1;min-width:220px">
+          <div style="font-weight:600;font-size:.88rem;margin-bottom:.35rem;color:var(--teal)">¿Qué materiales ingreso aquí?</div>
+          <div style="font-size:.8rem;color:var(--text-secondary);line-height:1.6">
+            Los materiales <strong style="color:var(--text-primary)">ya existentes o proyectados</strong> para cada una de las 6 caras del recinto. Si el espacio aún está en diseño, selecciona los materiales que planeas usar. Si el proyecto ya tiene definición constructiva, usa esos materiales reales.<br><br>
+            Cada material tiene un coeficiente de absorción α distinto: el concreto liso absorbe apenas el 2% del sonido (α=0.02), mientras que un panel de lana mineral puede absorber hasta el 95% (α=0.95). La suma total determina el eco de la sala.
+          </div>
+        </div>
+        <div style="flex:1;min-width:220px">
+          <div style="font-weight:600;font-size:.88rem;margin-bottom:.35rem;color:var(--amber)">¿No sé qué materiales poner?</div>
+          <div style="font-size:.8rem;color:var(--text-secondary);line-height:1.6">
+            Usa el botón <strong style="color:var(--amber)">"Propuesta automática"</strong> al final de esta sección. La herramienta analiza el tipo de espacio y propone la combinación óptima de materiales para alcanzar el RT₆₀ objetivo, junto con el cómputo de obra completo.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Selector de montaje — visual mejorado -->
+    <div style="margin-bottom:1.2rem">
+      <div class="fl" style="margin-bottom:.6rem">¿Cómo se instalarán los paneles absorbentes? <span style="color:var(--teal);font-weight:700">(ASTM E795)</span></div>
+      <div class="g2" id="mountSelector" style="gap:.7rem">
+
+        <div class="mount-option" id="mopt_A" onclick="selectMount('A')"
+          style="border:2px solid rgba(0,229,204,.15);border-radius:10px;padding:1rem;cursor:pointer;transition:all .2s;background:rgba(0,0,0,.2)">
+          <div style="display:flex;align-items:center;gap:.7rem;margin-bottom:.7rem">
+            <div style="font-size:1.1rem;font-weight:700;color:var(--text-secondary);font-family:var(--fm)">TIPO A</div>
+            <div style="font-size:.7rem;color:var(--text-secondary);font-family:var(--fm)">Pegado directo</div>
+          </div>
+          <!-- Esquema SVG Tipo A -->
+          <svg viewBox="0 0 200 80" style="width:100%;height:60px;display:block;margin-bottom:.6rem">
+            <!-- Losa / superficie base -->
+            <rect x="0" y="0" width="200" height="18" fill="#1e2d45" stroke="rgba(0,229,204,.3)" stroke-width="1"/>
+            <text x="100" y="12" text-anchor="middle" fill="#7a8fad" font-size="8" font-family="Space Mono">LOSA / MURO</text>
+            <!-- Panel pegado -->
+            <rect x="0" y="18" width="200" height="22" fill="rgba(0,229,204,.2)" stroke="rgba(0,229,204,.5)" stroke-width="1.5"/>
+            <text x="100" y="33" text-anchor="middle" fill="#00e5cc" font-size="8" font-family="Space Mono">PANEL ABSORBENTE</text>
+            <!-- Sin espacio -->
+            <text x="100" y="56" text-anchor="middle" fill="#f59e0b" font-size="8" font-family="Space Mono">Sin espacio de aire</text>
+            <line x1="20" y1="50" x2="180" y2="50" stroke="rgba(245,158,11,.4)" stroke-width="1" stroke-dasharray="4,3"/>
+            <text x="100" y="70" text-anchor="middle" fill="#7a8fad" font-size="7" font-family="Space Mono">Adhesivo directo</text>
+          </svg>
+          <div style="font-size:.75rem;color:var(--text-secondary);line-height:1.5">
+            Panel adherido directamente sobre el muro o losa. Menor rendimiento en bajas frecuencias (125–250 Hz). Usado cuando la altura libre es limitada.
+          </div>
+          <div style="margin-top:.5rem;font-family:var(--fm);font-size:.65rem;color:var(--text-secondary)">
+            Ejemplo: <span style="color:var(--text-primary)">paneles encolados en muro lateral</span>
+          </div>
+        </div>
+
+        <div class="mount-option" id="mopt_E" onclick="selectMount('E')"
+          style="border:2px solid var(--teal);border-radius:10px;padding:1rem;cursor:pointer;transition:all .2s;background:rgba(0,229,204,.06)">
+          <div style="display:flex;align-items:center;gap:.7rem;margin-bottom:.7rem">
+            <div style="font-size:1.1rem;font-weight:700;color:var(--teal);font-family:var(--fm)">TIPO E</div>
+            <div style="font-size:.7rem;color:var(--teal);font-family:var(--fm)">Con cámara de aire — ✓ Recomendado</div>
+          </div>
+          <!-- Esquema SVG Tipo E -->
+          <svg viewBox="0 0 200 80" style="width:100%;height:60px;display:block;margin-bottom:.6rem">
+            <!-- Losa -->
+            <rect x="0" y="0" width="200" height="14" fill="#1e2d45" stroke="rgba(0,229,204,.3)" stroke-width="1"/>
+            <text x="100" y="10" text-anchor="middle" fill="#7a8fad" font-size="7" font-family="Space Mono">LOSA</text>
+            <!-- Colgadores -->
+            <line x1="40" y1="14" x2="40" y2="34" stroke="rgba(0,229,204,.5)" stroke-width="1.5"/>
+            <line x1="100" y1="14" x2="100" y2="34" stroke="rgba(0,229,204,.5)" stroke-width="1.5"/>
+            <line x1="160" y1="14" x2="160" y2="34" stroke="rgba(0,229,204,.5)" stroke-width="1.5"/>
+            <!-- Cámara de aire -->
+            <rect x="0" y="14" width="200" height="20" fill="rgba(59,130,246,.06)" stroke="rgba(59,130,246,.2)" stroke-width="1" stroke-dasharray="3,3"/>
+            <text x="100" y="27" text-anchor="middle" fill="#3b82f6" font-size="7" font-family="Space Mono">CÁMARA DE AIRE (plenum)</text>
+            <!-- Panel -->
+            <rect x="0" y="34" width="200" height="18" fill="rgba(0,229,204,.25)" stroke="rgba(0,229,204,.6)" stroke-width="1.5"/>
+            <text x="100" y="46" text-anchor="middle" fill="#00e5cc" font-size="8" font-family="Space Mono">PANEL ABSORBENTE</text>
+            <text x="100" y="70" text-anchor="middle" fill="#10b981" font-size="7" font-family="Space Mono">Mejor absorción en bajas frecuencias</text>
+          </svg>
+          <div style="font-size:.75rem;color:var(--text-secondary);line-height:1.5">
+            Panel suspendido con espacio de aire entre el panel y la losa. El sonido pasa, rebota y vuelve a pasar — duplicando la absorción en 125–500 Hz. Es el techo acústico suspendido típico.
+          </div>
+          <div style="margin-top:.5rem;font-family:var(--fm);font-size:.65rem;color:var(--text-secondary)">
+            Ejemplo: <span style="color:var(--text-primary)">sistema de baldosas Armstrong, Rockfon, USG colgado de losa</span>
+          </div>
+        </div>
+      </div>
+      <input type="hidden" id="mountType" value="E">
+    </div>
+
+    <!-- Tabla de superficies -->
+    <div id="surfaceInputs"></div>
+
+    <div style="margin-top:1rem;display:flex;gap:.7rem;flex-wrap:wrap">
+      <button class="btn btn-v" onclick="applyRecommendedMaterials()">✨ Propuesta automática de materiales</button>
+      <button class="btn btn-g" onclick="resetMaterials()">↺ Restaurar predeterminados</button>
+    </div>
+  </div>
+
+  <!-- ── BLOQUE 3: Aislamiento ─────────────────────────────── -->
+  <div class="card" style="margin-bottom:1rem">
+    <div class="ct">③ Composición del Muro hacia el Exterior o Espacio Adyacente</div>
+
+    <!-- Explicación contextual -->
+    <div style="background:rgba(167,139,250,.05);border:1px solid rgba(167,139,250,.18);border-radius:8px;padding:1rem;margin-bottom:1.2rem">
+      <div style="display:flex;gap:1rem;align-items:flex-start;flex-wrap:wrap">
+        <div style="flex:1;min-width:220px">
+          <div style="font-weight:600;font-size:.88rem;margin-bottom:.35rem;color:var(--purple)">¿Qué se describe en esta sección?</div>
+          <div style="font-size:.8rem;color:var(--text-secondary);line-height:1.6">
+            La composición del muro que separa tu espacio del exterior, de otro local o de una zona de ruido (pasillo, oficina vecina, calle). El objetivo es calcular cuánto ruido <strong style="color:var(--text-primary)">no entra</strong> al recinto.<br><br>
+            <strong style="color:var(--text-primary)">No se refiere a los muros interiores</strong> del recinto — esos se describen en la sección de materiales de superficie. Esta sección es específicamente para evaluar la <em>privacidad acústica</em>.
+          </div>
+        </div>
+        <div style="flex:1;min-width:220px">
+          <div style="font-weight:600;font-size:.88rem;margin-bottom:.35rem;color:var(--amber)">El problema del punto débil</div>
+          <div style="font-size:.8rem;color:var(--text-secondary);line-height:1.6">
+            Una pared de concreto tiene STC 50, pero si tiene una ventana de vidrio simple (STC 28) y una puerta hueca (STC 22), el conjunto completo cae a aprox. <strong style="color:var(--rose)">STC 30</strong>. El sonido siempre entra por el elemento más débil. Por eso se calcula el <em>STC compuesto</em> con todos los elementos.
+          </div>
+        </div>
+      </div>
+      <!-- Esquema de muro compuesto -->
+      <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid rgba(167,139,250,.15)">
+        <div style="font-family:var(--fm);font-size:.65rem;color:var(--purple);letter-spacing:.1em;margin-bottom:.5rem">ESQUEMA — MURO ANALIZADO</div>
+        <svg viewBox="0 0 500 70" style="width:100%;height:55px;display:block">
+          <!-- Muro -->
+          <rect x="10" y="10" width="220" height="50" fill="rgba(30,45,69,.8)" stroke="rgba(0,229,204,.3)" stroke-width="1.5" rx="3"/>
+          <text x="120" y="40" text-anchor="middle" fill="#e8edf5" font-size="10" font-family="Space Mono" font-weight="bold">MURO</text>
+          <text x="120" y="53" text-anchor="middle" fill="#7a8fad" font-size="8" font-family="Space Mono">STC 44–55</text>
+          <!-- Ventana -->
+          <rect x="240" y="10" width="110" height="50" fill="rgba(59,130,246,.12)" stroke="rgba(59,130,246,.5)" stroke-width="1.5" rx="3"/>
+          <text x="295" y="35" text-anchor="middle" fill="#3b82f6" font-size="10" font-family="Space Mono" font-weight="bold">VENTANA</text>
+          <text x="295" y="50" text-anchor="middle" fill="#7a8fad" font-size="8" font-family="Space Mono">STC 28–48</text>
+          <!-- Puerta -->
+          <rect x="360" y="10" width="130" height="50" fill="rgba(245,158,11,.1)" stroke="rgba(245,158,11,.4)" stroke-width="1.5" rx="3"/>
+          <text x="425" y="35" text-anchor="middle" fill="#f59e0b" font-size="10" font-family="Space Mono" font-weight="bold">PUERTA</text>
+          <text x="425" y="50" text-anchor="middle" fill="#7a8fad" font-size="8" font-family="Space Mono">STC 22–52</text>
+          <!-- Flecha resultado -->
+          <text x="10" y="8" fill="#f43f5e" font-size="7" font-family="Space Mono">→ STC compuesto ponderado por área de cada elemento</text>
+        </svg>
+      </div>
+    </div>
+
+    <div class="g3">
+      <div class="fg">
+        <label class="fl">Estructura del Muro Principal</label>
+        <select class="fs" id="wallMat">
+          <option value="concreto_15">Concreto 15cm — STC 50</option>
+          <option value="ladrillo_12">Ladrillo 12cm — STC 44</option>
+          <option value="drywall_doble">Drywall 2×15mm Doble — STC 52</option>
+          <option value="drywall_simple">Drywall Simple — STC 38</option>
+          <option value="bloque_20">Bloque H20 — STC 46</option>
+          <option value="concreto_20">Concreto 20cm — STC 55</option>
+        </select>
+        <span class="unit">Material sólido — la mayor parte del muro</span>
+      </div>
+      <div class="fg">
+        <label class="fl">Área Total del Muro (m²)</label>
+        <input class="fi" id="wallTotalArea" type="number" value="24" step="0.5" min="4">
+        <span class="unit">Incluyendo ventana y puerta</span>
+      </div>
+      <div class="fg">
+        <label class="fl">Área de Ventana (m²)</label>
+        <input class="fi" id="winArea" type="number" value="2.4" step="0.1" min="0">
+        <span class="unit">0 si no hay ventana</span>
+      </div>
+      <div class="fg">
+        <label class="fl">Tipo de Vidrio / Ventana</label>
+        <select class="fs" id="glazType">
+          <option value="simple_6">Vidrio Simple 6mm — STC 28 ⚠ Punto débil</option>
+          <option value="laminado">Vidrio Laminado 6+6 PVB — STC 36</option>
+          <option value="dvh">Doble Vidrio DVH 6/12/6 — STC 42</option>
+          <option value="acustico">Vidrio Acústico 6/16/8 Lam. — STC 48</option>
+        </select>
+        <span class="unit">El vidrio simple reduce drásticamente el STC compuesto</span>
+      </div>
+      <div class="fg">
+        <label class="fl">Área de Puerta (m²)</label>
+        <input class="fi" id="doorArea" type="number" value="2.0" step="0.1" min="0">
+        <span class="unit">0 si no hay puerta en este muro</span>
+      </div>
+      <div class="fg">
+        <label class="fl">Tipo de Puerta</label>
+        <select class="fs" id="doorType">
+          <option value="hueca">Puerta Hueca (interior) — STC 22 ⚠</option>
+          <option value="solida">Puerta Sólida (madera maciza) — STC 32</option>
+          <option value="acustica_40">Puerta Acústica 40dB + burlete — STC 40</option>
+          <option value="acustica_52">Puerta Acústica 52dB blindada — STC 52</option>
+        </select>
+        <span class="unit">Las puertas huecas son el punto débil más común en oficinas</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:.8rem;justify-content:flex-end;flex-wrap:wrap">
+    <button class="btn btn-g" onclick="resetForm()">↺ Reiniciar todo</button>
+    <button class="btn btn-p" onclick="calculateAll();showSec('resultados')">▶ CALCULAR Y VER RESULTADOS</button>
+  </div>
+</div>
+
+<!-- ══════════════ 2. RESULTADOS ══════════════ -->
+<div id="resultados" class="section">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem;flex-wrap:wrap;gap:.7rem">
+    <h2 style="font-family:var(--fd);font-size:1.35rem;font-weight:800">Resultados del Análisis Acústico</h2>
+    <button class="btn btn-p" onclick="calculateAll()">↻ Recalcular</button>
+  </div>
+
+  <!-- Tabs de análisis -->
+  <div class="inner-tabs">
+    <button class="inner-tab active" onclick="showPanel('p_rt')">RT₆₀ Reverberación</button>
+    <button class="inner-tab" onclick="showPanel('p_spl')">SPL Distribución</button>
+    <button class="inner-tab" onclick="showPanel('p_sti')">STI Inteligibilidad</button>
+    <button class="inner-tab" onclick="showPanel('p_modal')">Modos Propios</button>
+    <button class="inner-tab" onclick="showPanel('p_stc')">STC Aislamiento</button>
+  </div>
+
+  <!-- RT60 -->
+  <div id="p_rt" class="inner-panel active">
+    <div style="background:rgba(0,229,204,.05);border:1px solid rgba(0,229,204,.15);border-radius:8px;padding:1rem;margin-bottom:1rem;font-size:.82rem;line-height:1.6">
+      <strong style="color:var(--teal)">¿Qué mide el RT₆₀?</strong> El tiempo en que el sonido tarda en decaer 60 dB tras apagar la fuente. Un RT₆₀ alto = sala reverberante (eco). Un RT₆₀ bajo = sala amortiguada. Según <em>ISO 3382-2</em>, cada uso tiene un rango óptimo: aulas ≤0.6s, oficinas ≤0.5s, auditorios 0.8–1.5s.
+    </div>
+    <div class="g4" style="margin-bottom:1rem">
+      <div class="mc"><div class="mv" id="r_rt500">—</div><div class="ml">RT₆₀ 500 Hz (s)</div></div>
+      <div class="mc"><div class="mv" id="r_rt1k">—</div><div class="ml">RT₆₀ 1 kHz (s)</div></div>
+      <div class="mc"><div class="mv" id="r_rtMid">—</div><div class="ml">RT₆₀ Medio (s)</div></div>
+      <div class="mc"><div class="mv" id="r_rtObj">—</div><div class="ml">Objetivo ISO</div></div>
+    </div>
+    <div class="g65">
+      <div class="card"><div class="ct">Curva de Reverberación vs Objetivo</div><div class="cw"><canvas id="rtChart" height="250"></canvas></div></div>
+      <div class="card"><div class="ct">Absorción Total por Banda</div>
+        <table><thead><tr><th>Superficie / Material</th><th>500Hz</th><th>1kHz</th><th>NRC</th></tr></thead>
+        <tbody id="absTbody"></tbody></table>
+      </div>
+    </div>
+    <div class="card" style="margin-top:1rem"><div class="ct">Tabla RT₆₀ Completa por Octava</div>
+      <div style="overflow-x:auto"><table><thead><tr><th>Parámetro</th><th>63Hz</th><th>125Hz</th><th>250Hz</th><th>500Hz</th><th>1kHz</th><th>2kHz</th><th>4kHz</th><th>8kHz</th><th>Estado</th></tr></thead>
+      <tbody id="rtFullTbody"></tbody></table></div>
+    </div>
+  </div>
+
+  <!-- SPL -->
+  <div id="p_spl" class="inner-panel">
+    <div style="background:rgba(59,130,246,.07);border:1px solid rgba(59,130,246,.2);border-radius:8px;padding:1rem;margin-bottom:1rem;font-size:.82rem;line-height:1.6">
+      <strong style="color:var(--blue)">¿Qué es la Distribución de Presión Sonora (SPL)?</strong> Garantiza que el sonido llegue con nivel adecuado a todos los puntos del local. Se analiza el <em>campo directo</em> (ley inversa de la distancia) vs el <em>campo reverberante</em> (constante en sala). La distancia crítica <em>Dc</em> es donde ambos son iguales: más allá, domina la reverberación.
+    </div>
+    <div class="g4" style="margin-bottom:1rem">
+      <div class="mc"><div class="mv" id="r_dc">—</div><div class="ml">Dist. Crítica Dc (m)</div></div>
+      <div class="mc"><div class="mv" id="r_splRef">—</div><div class="ml">SPL @ 1m (dB)</div></div>
+      <div class="mc"><div class="mv" id="r_splFar">—</div><div class="ml">SPL @ Dc (dB)</div></div>
+      <div class="mc"><div class="mv" id="r_splCov">—</div><div class="ml">Cobertura</div></div>
+    </div>
+    <div class="g65">
+      <div class="card"><div class="ct">Curva SPL vs Distancia a Fuente</div><div class="cw"><canvas id="splChart" height="260"></canvas></div></div>
+      <div class="card"><div class="ct">Análisis de Cobertura</div><div id="splAnalysis" style="font-size:.82rem;line-height:1.7;color:var(--text-secondary)">Calcule primero...</div></div>
+    </div>
+  </div>
+
+  <!-- STI -->
+  <div id="p_sti" class="inner-panel">
+    <div style="background:rgba(167,139,250,.07);border:1px solid rgba(167,139,250,.2);border-radius:8px;padding:1rem;margin-bottom:1rem;font-size:.82rem;line-height:1.6">
+      <strong style="color:var(--purple)">¿Qué es el STI (Speech Transmission Index)?</strong> Mide qué porcentaje de las palabras se comprenden correctamente (0=incomprensible, 1=perfecto). Depende del cociente señal/ruido (SNR) y del RT₆₀. Según <em>IEC 60268-16 Ed.4</em>: STI ≥ 0.75 = Excelente, ≥ 0.60 = Bueno, ≥ 0.45 = Regular, < 0.45 = Inaceptable.
+    </div>
+    <div class="g4" style="margin-bottom:1rem">
+      <div class="mc"><div class="mv" id="r_sti">—</div><div class="ml">STI Global</div></div>
+      <div class="mc"><div class="mv" id="r_stiQ">—</div><div class="ml">Calificación</div></div>
+      <div class="mc"><div class="mv" id="r_snr">—</div><div class="ml">SNR Efectivo (dB)</div></div>
+      <div class="mc"><div class="mv" id="r_clarity">—</div><div class="ml">Claridad C₅₀ (dB)</div></div>
+    </div>
+    <div class="g65">
+      <div class="card"><div class="ct">STI por Octava (MTF)</div><div class="cw"><canvas id="stiChart" height="260"></canvas></div></div>
+      <div class="card"><div class="ct">Evaluación de Inteligibilidad</div><div id="stiAnalysis" style="font-size:.82rem;line-height:1.7;color:var(--text-secondary)">Calcule primero...</div></div>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div id="p_modal" class="inner-panel">
+    <div style="background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.2);border-radius:8px;padding:1rem;margin-bottom:1rem;font-size:.82rem;line-height:1.6">
+      <strong style="color:var(--amber)">¿Qué son los Modos Propios?</strong> En frecuencias bajas (&lt;300Hz), el sonido forma patrones estacionarios que "retumban" en la sala. Las dimensiones L, W, H determinan las frecuencias de resonancia. Si hay acumulación de modos (&lt;10Hz de separación), habrá coloración del sonido. Criterios de <em>Louden, Sepmeyer y el área de Bolt</em> guían el diseño dimensional.
+    </div>
+    <div class="g2" style="margin-bottom:1rem">
+      <div class="g3">
+        <div class="mc"><div class="mv" id="r_lw">—</div><div class="ml">Ratio L/W</div></div>
+        <div class="mc"><div class="mv" id="r_lh">—</div><div class="ml">Ratio L/H</div></div>
+        <div class="mc"><div class="mv" id="r_wh">—</div><div class="ml">Ratio W/H</div></div>
+      </div>
+      <div class="card"><div id="modalCriteria" style="font-family:var(--fm);font-size:.72rem;line-height:1.8;color:var(--text-secondary)">Calcule primero...</div></div>
+    </div>
+    <div class="g65">
+      <div class="card"><div class="ct">Diagrama de Modos Axiales (0–300Hz)</div><canvas id="modeCanvas" style="width:100%;height:200px;border-radius:6px;display:block"></canvas></div>
+      <div class="card"><div class="ct">Listado de Modos (primeros 15)</div>
+        <div style="overflow-x:auto"><table><thead><tr><th>N</th><th>Eje</th><th>f (Hz)</th><th>n</th><th>Separación</th></tr></thead>
+        <tbody id="modeTbody"></tbody></table></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STC -->
+  <div id="p_stc" class="inner-panel">
+    <div style="background:rgba(16,185,129,.07);border:1px solid rgba(16,185,129,.2);border-radius:8px;padding:1rem;margin-bottom:1rem;font-size:.82rem;line-height:1.6">
+      <strong style="color:var(--green)">¿Qué es el STC Compuesto?</strong> El aislamiento real de una partición con ventanas y puertas siempre es menor al del muro solo. La fórmula de transmisión compuesta: <em>TL = -10·log10(Σ τᵢ·Sᵢ / S_total)</em> donde τᵢ=10^(-STC/10). El elemento más débil (ventana, puerta, flanking) domina el resultado.
+    </div>
+    <div class="g4" style="margin-bottom:1rem">
+      <div class="mc"><div class="mv" id="r_stcComp">—</div><div class="ml">STC Compuesto</div></div>
+      <div class="mc"><div class="mv" id="r_stcWall">—</div><div class="ml">STC Muro</div></div>
+      <div class="mc"><div class="mv" id="r_stcGlaz">—</div><div class="ml">STC Vidrio</div></div>
+      <div class="mc"><div class="mv" id="r_iic">—</div><div class="ml">IIC Losa</div></div>
+    </div>
+    <div class="g2">
+      <div class="card"><div class="ct">Desglose por Elemento</div><div id="stcBreak" style="font-size:.82rem;color:var(--text-secondary)">Calcule primero...</div></div>
+      <div class="card"><div class="ct">Ley de Masas — TL vs Frecuencia</div><div class="cw"><canvas id="massChart" height="220"></canvas></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ 3. PROPUESTA / RECOMENDACIONES ══════════════ -->
+<div id="recomendaciones" class="section">
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.2rem;flex-wrap:wrap;gap:.8rem">
+    <div>
+      <h2 style="font-family:var(--fd);font-size:1.35rem;font-weight:800">Propuesta de Materiales & Cómputo de Obra</h2>
+      <p style="color:var(--text-secondary);font-size:.82rem;margin-top:.25rem">El motor analiza los déficits acústicos y propone la combinación óptima de materiales para alcanzar los objetivos</p>
+    </div>
+    <button class="btn btn-p" onclick="generateRecommendations()">✨ GENERAR PROPUESTA</button>
+  </div>
+
+  <!-- Diagnóstico -->
+  <div class="card" style="margin-bottom:1rem" id="diagCard">
+    <div class="ct">Diagnóstico de Déficits</div>
+    <div id="diagContent" style="color:var(--text-secondary);font-size:.83rem">Ejecute el cálculo primero desde la sección Entrada o Resultados...</div>
+  </div>
+
+  <!-- Propuesta de materiales -->
+  <div class="card" style="margin-bottom:1rem">
+    <div class="ct">Materiales Propuestos por Superficie</div>
+    <div id="recProposal">
+      <div style="color:var(--text-secondary);font-size:.83rem;padding:1rem 0">Genere la propuesta para ver recomendaciones...</div>
+    </div>
+  </div>
+
+  <!-- Cómputo de obra -->
+  <div class="card" style="margin-bottom:1rem">
+    <div class="ct">Cómputo Métrico de Obra <span style="font-family:var(--fs);color:var(--text-secondary);font-size:.75rem;text-transform:none;letter-spacing:0">(+5% desperdicio incluido)</span></div>
+    <div class="qt-row qt-h">
+      <span>Material / Elemento</span><span style="text-align:right">m² / ml neto</span><span style="text-align:right">+5%</span><span style="text-align:right">Unid.</span><span style="text-align:right">Observación</span>
+    </div>
+    <div id="quantityRows"><div style="color:var(--text-secondary);font-size:.8rem;padding:.8rem 0">Genere la propuesta primero...</div></div>
+    <div id="accessoriesRows"></div>
+  </div>
+
+  <!-- Vista en planta de materiales -->
+  <div class="card">
+    <div class="ct">Mapa Visual de Distribución</div>
+    <div id="materialMap" style="display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;max-width:600px;margin:0 auto"></div>
+  </div>
+</div>
+
+<!-- ══════════════ 4. EXPEDIENTE WELL ══════════════ -->
+<div id="expediente" class="section">
+  <div class="rh">
+    <div class="rh-num">EXPEDIENTE DE BIENESTAR · WELL v2.0 · <span id="rptDate">—</span></div>
+    <div class="rh-title">Análisis Técnico: <span style="color:var(--teal)" id="rptTitle">—</span></div>
+    <div style="color:var(--text-secondary);font-size:.83rem;margin-top:.3rem" id="rptMeta">—</div>
+    <div style="margin-top:1rem;display:flex;gap:.8rem;flex-wrap:wrap">
+      <button class="btn btn-p" onclick="calculateAll();generateWELL()">⟳ Actualizar Expediente</button>
+      <button class="btn btn-g" onclick="window.print()">⬡ Imprimir / PDF</button>
+    </div>
+  </div>
+
+  <div class="g4" style="margin-bottom:1.4rem">
+    <div class="mc"><div class="mv" id="w_score">—</div><div class="ml">Score WELL Acústico</div></div>
+    <div class="mc"><div class="mv" id="w_rt">—</div><div class="ml">RT₆₀ (A01)</div></div>
+    <div class="mc"><div class="mv" id="w_sti">—</div><div class="ml">STI (A05)</div></div>
+    <div class="mc"><div class="mv" id="w_stc">—</div><div class="ml">STC (A07)</div></div>
+  </div>
+
+  <div id="wellBody">
+    <div class="card" style="margin-bottom:1rem"><div class="ws-block"><div class="ws-title"><span>👂</span> OÍDO — Confort Acústico (WELL A01–A09)</div><div id="w_audio" style="color:var(--text-secondary)">Calcule primero...</div></div></div>
+    <div class="card" style="margin-bottom:1rem"><div class="ws-block"><div class="ws-title"><span>👁</span> VISTA — Calidad Visual & Reflectancia (WELL L01–L09)</div><div id="w_visual" style="color:var(--text-secondary)">Calcule primero...</div></div></div>
+    <div class="card" style="margin-bottom:1rem"><div class="ws-block"><div class="ws-title"><span>🌿</span> TACTO & OLFATO — Materiales Low-VOC (WELL A01 · X05)</div><div id="w_mat" style="color:var(--text-secondary)">Calcule primero...</div></div></div>
+    <div class="card"><div class="ws-block"><div class="ws-title"><span>📐</span> CÓMPUTO DE OBRA WELL</div><div id="w_qty">Calcule primero...</div></div></div>
+  </div>
+</div>
+
+</main>
+<div id="toast">✓</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     JAVASCRIPT — MOTOR ACÚSTICO COMPLETO v2
+══════════════════════════════════════════════════════════════ -->
+<script>
+/* ╔═══════════════════════════════════════════════════════════════
+   ║  BASE DE DATOS DE MATERIALES ACÚSTICOS
+   ║  Coeficientes α: [63, 125, 250, 500, 1k, 2k, 4k, 8k Hz]
+   ║  Fuentes: ISO 354, ASTM C423, catálogos Rockwool, Knauf, USG
+   ╚═══════════════════════════════════════════════════════════════ */
+const MAT = {
+  // ── ABSORBENTES ─────────────────────────────────────────────────
+  lm25: {
+    name:'Lana Mineral 25mm (ρ=40 kg/m³)', short:'LM 25mm',
+    cat:'absorbente',
+    alpha:{ A:[.05,.10,.25,.55,.75,.80,.82,.80], E:[.08,.20,.55,.85,.90,.90,.88,.85] },
+    NRC:.60, STC:null, kg_m2:1.0,
+    thickness:25,           // espesor del panel en mm
+    systemDepth:{ A:25, E:125 }, // profundidad total del sistema (panel + estructura/plenum) en mm
+    mountNote:{ A:'Panel encolado directo sobre sustrato', E:'Panel + plenum mín. 100mm + estructura T-grid' },
+    fire:'A1 / Clase A (ASTM E84)', voc:'TVOC<50 μg/m³ — ULEF', lrv:75,
+    price:18, well:true, color:'#00e5cc22', border:'var(--teal)',
+    use:['techo','pared_frontal','pared_posterior','pared_izq','pared_der'],
+    desc:'Panel estándar de lana mineral para techo y muros. Excelente relación coste/rendimiento.'
+  },
+  lm50: {
+    name:'Lana Mineral 50mm (ρ=40 kg/m³)', short:'LM 50mm',
+    cat:'absorbente',
+    alpha:{ A:[.10,.20,.45,.75,.90,.95,.92,.88], E:[.15,.35,.70,.95,1.00,1.00,.98,.95] },
+    NRC:.85, STC:null, kg_m2:2.0,
+    thickness:50,
+    systemDepth:{ A:50, E:150 },
+    mountNote:{ A:'Panel encolado + fijación mecánica recomendada', E:'Panel + plenum mín. 100mm + estructura T-grid' },
+    fire:'A1 / Clase A', voc:'TVOC<50 μg/m³', lrv:75,
+    price:28, well:true, color:'#00e5cc33', border:'var(--teal)',
+    use:['techo','pared_frontal','pared_posterior','pared_izq','pared_der'],
+    desc:'Mayor espesor mejora absorción en 125-500Hz. Recomendado para salas de reuniones y aulas.'
+  },
+  lm100: {
+    name:'Lana Mineral 100mm (ρ=60 kg/m³)', short:'LM 100mm',
+    cat:'absorbente',
+    alpha:{ A:[.15,.35,.70,.90,.95,.98,.95,.92], E:[.25,.55,.90,1.00,1.00,1.00,1.00,.98] },
+    NRC:.95, STC:null, kg_m2:6.0,
+    thickness:100,
+    systemDepth:{ A:100, E:200 },
+    mountNote:{ A:'Panel encolado + fijación mecánica obligatoria (peso)', E:'Panel + plenum mín. 100mm + estructura reforzada' },
+    fire:'A1 / Clase A', voc:'TVOC<50 μg/m³', lrv:75,
+    price:45, well:true, color:'#00e5cc44', border:'var(--teal)',
+    use:['techo','pared_frontal','pared_posterior','pared_izq','pared_der'],
+    desc:'Control de bajas frecuencias. Para estudios y auditorios donde los graves son críticos.'
+  },
+  pet25: {
+    name:'Panel PET Reciclado 25mm (ρ=30 kg/m³)', short:'PET 25mm',
+    cat:'absorbente',
+    alpha:{ A:[.04,.08,.20,.50,.70,.80,.85,.82], E:[.06,.15,.40,.75,.88,.92,.90,.87] },
+    NRC:.70, STC:null, kg_m2:0.75,
+    thickness:25,
+    systemDepth:{ A:25, E:125 },
+    mountNote:{ A:'Panel encolado o con grapas ocultas', E:'Panel + plenum mín. 100mm' },
+    fire:'B / Clase B', voc:'0 VOC — 100% reciclado', lrv:65,
+    price:22, well:true, color:'#10b98122', border:'var(--green)',
+    use:['techo','pared_frontal','pared_posterior'],
+    desc:'Sostenible. Contenido reciclado post-consumo >80%. Certificado GREENGUARD Gold.'
+  },
+  melamina50: {
+    name:'Espuma Melamina 50mm (ρ=9 kg/m³)', short:'Melamina 50mm',
+    cat:'absorbente',
+    alpha:{ A:[.08,.18,.50,.90,.98,1.00,1.00,.99], E:[.12,.28,.70,1.00,1.00,1.00,1.00,1.00] },
+    NRC:.95, STC:null, kg_m2:0.45,
+    thickness:50,
+    systemDepth:{ A:50, E:150 },
+    mountNote:{ A:'Adhesivo de contacto o fijación oculta (muy ligero)', E:'Panel + plenum + suspensión liviana' },
+    fire:'B / Clase 1 DIN 4102', voc:'<1 μg/m³ formaldehído', lrv:90,
+    price:55, well:true, color:'#a78bfa22', border:'var(--purple)',
+    use:['techo','pared_frontal','pared_posterior','pared_izq','pared_der'],
+    desc:'Ultra ligero, altísima absorción. Ideal para estudios. Resistente a humedad y moho.'
+  },
+  madera_perf: {
+    name:'Panel Madera Perforada MDF (20% perf.)', short:'MDF Perforado',
+    cat:'absorbente',
+    alpha:{ A:[.05,.10,.20,.50,.60,.65,.60,.55], E:[.08,.18,.40,.70,.78,.80,.75,.70] },
+    NRC:.65, STC:null, kg_m2:8.0,
+    thickness:19,           // tablero MDF estándar 19mm + lana mineral posterior 25mm = sistema 44mm
+    systemDepth:{ A:44, E:144 },
+    mountNote:{ A:'MDF 19mm + LM 25mm + estructura perimetral', E:'MDF 19mm + LM 25mm + plenum + T-grid' },
+    fire:'C-s2-d0 / Clase 1', voc:'E1 — Bajo formaldehído', lrv:40,
+    price:65, well:true, color:'#f59e0b22', border:'var(--amber)',
+    use:['techo','pared_frontal','pared_posterior'],
+    desc:'Estético. Perforación circular con lana mineral posterior. Para espacios donde el aspecto es clave.'
+  },
+  madera_ran: {
+    name:'Panel Madera Ranurada (Linear Wood)', short:'Ranurado',
+    cat:'absorbente',
+    alpha:{ A:[.04,.08,.15,.40,.55,.62,.60,.55], E:[.07,.15,.32,.62,.72,.78,.74,.70] },
+    NRC:.60, STC:null, kg_m2:10.0,
+    thickness:21,           // tablero 21mm + LM 30mm posterior
+    systemDepth:{ A:51, E:151 },
+    mountNote:{ A:'Tablero 21mm + LM 30mm + perfil omega', E:'Tablero + LM + plenum + perfil omega' },
+    fire:'C-s2-d0 / Clase 1', voc:'E1', lrv:35,
+    price:85, well:true, color:'#f59e0b33', border:'var(--amber)',
+    use:['pared_frontal','pared_posterior','pared_izq','pared_der'],
+    desc:'Alta calidad estética con ranuras lineares. Usado en salas de reuniones premium.'
+  },
+  helmholtz: {
+    name:'Resonador Helmholtz tuneado 125Hz', short:'Helmholtz 125',
+    cat:'absorbente',
+    alpha:{ A:[.02,.80,.35,.15,.08,.05,.04,.03], E:[.02,.80,.35,.15,.08,.05,.04,.03] },
+    NRC:.30, STC:null, kg_m2:15.0,
+    thickness:120,          // caja resonadora + cavidad interna
+    systemDepth:{ A:120, E:120 },
+    mountNote:{ A:'Caja metálica o MDF con cavidad tuneada — fijación mecánica', E:'Igual al tipo A (la cavidad es el plenum)' },
+    fire:'A2 / Clase A', voc:'Neutro', lrv:45,
+    price:140, well:true, color:'#3b82f622', border:'var(--blue)',
+    use:['pared_frontal','pared_posterior'],
+    desc:'Resonador selectivo para controlar el modo de sala a 125Hz. Usado en combinación con otros absorbentes.'
+  },
+  fibra_nat: {
+    name:'Panel Fibra Natural Kenaf 40mm', short:'Fibra Kenaf',
+    cat:'absorbente',
+    alpha:{ A:[.05,.12,.30,.60,.78,.85,.88,.85], E:[.08,.22,.55,.82,.92,.95,.92,.90] },
+    NRC:.75, STC:null, kg_m2:2.5,
+    thickness:40,
+    systemDepth:{ A:40, E:140 },
+    mountNote:{ A:'Panel encolado o cosido sobre estructura de madera', E:'Panel + plenum + suspensión' },
+    fire:'C (tratamiento necesario)', voc:'0 VOC Natural', lrv:50,
+    price:35, well:true, color:'#10b98133', border:'var(--green)',
+    use:['techo','pared_frontal','pared_posterior'],
+    desc:'Biodegradable. Para proyectos con certificación LEED + WELL. Origen natural 100%.'
+  },
+  // ── SUPERFICIES DURAS ────────────────────────────────────────────
+  concreto: {
+    name:'Concreto liso / Tarrajeado', short:'Concreto',
+    cat:'duro',
+    alpha:{ A:[.01,.01,.02,.02,.03,.03,.03,.03], E:[.01,.01,.02,.02,.03,.03,.03,.03] },
+    NRC:.02, STC:50, kg_m2:350,
+    thickness:150, systemDepth:{ A:150, E:150 },
+    mountNote:{ A:'Estructura existente', E:'Estructura existente' },
+    fire:'A1', voc:'Neutro', lrv:35, price:0, well:true,
+    use:['piso','pared_frontal','pared_posterior','pared_izq','pared_der'],
+    desc:'Superficie reflectante. Alta rigidez. Sin absorción significativa.'
+  },
+  ceramico: {
+    name:'Piso Cerámico / Porcelanato', short:'Porcelanato',
+    cat:'duro',
+    alpha:{ A:[.01,.01,.01,.02,.02,.02,.02,.02], E:[.01,.01,.01,.02,.02,.02,.02,.02] },
+    NRC:.02, STC:null, kg_m2:22,
+    thickness:10, systemDepth:{ A:10, E:10 },
+    mountNote:{ A:'Porcelanato 10mm sobre mortero', E:'N/A' },
+    fire:'A1', voc:'Neutro', lrv:60, price:0, well:true,
+    use:['piso'],
+    desc:'Muy duro y reflectante. Contribuye a reverberación. Considerar alfombra o vinílico acústico.'
+  },
+  alfombra_f: {
+    name:'Alfombra fina s/relleno (5mm)', short:'Alfombra fina',
+    cat:'absorbente',
+    alpha:{ A:[.03,.05,.10,.20,.30,.40,.50,.55], E:[.03,.05,.10,.20,.30,.40,.50,.55] },
+    NRC:.25, STC:null, kg_m2:2.0,
+    thickness:5, systemDepth:{ A:5, E:5 },
+    mountNote:{ A:'Tendida sobre sustrato o pegada', E:'N/A' },
+    fire:'B', voc:'Verificar TVOC<100 μg/m³', lrv:20, price:15, well:true,
+    use:['piso'], desc:'Absorción leve en altas frecuencias. Mejora IIC en 10 pts.'
+  },
+  alfombra_g: {
+    name:'Alfombra gruesa con relleno (12mm)', short:'Alfombra gruesa',
+    cat:'absorbente',
+    alpha:{ A:[.08,.10,.20,.35,.55,.65,.70,.72], E:[.08,.10,.20,.35,.55,.65,.70,.72] },
+    NRC:.55, STC:null, kg_m2:5.0,
+    thickness:12, systemDepth:{ A:12, E:12 },
+    mountNote:{ A:'Alfombra + underlay 8mm + pegado perimetral', E:'N/A' },
+    fire:'B', voc:'GREENGUARD Gold', lrv:20, price:30, well:true,
+    use:['piso'], desc:'Buena absorción + IIC +22 pts. Recomendada para oficinas y consultorios.'
+  },
+  vinilico: {
+    name:'Piso Vinílico Acústico LVT 3mm', short:'LVT Acústico',
+    cat:'absorbente',
+    alpha:{ A:[.02,.03,.05,.10,.15,.20,.25,.28], E:[.02,.03,.05,.10,.15,.20,.25,.28] },
+    NRC:.15, STC:null, kg_m2:4.5,
+    thickness:3, systemDepth:{ A:3, E:3 },
+    mountNote:{ A:'LVT flotante o pegado — backing acústico integrado', E:'N/A' },
+    fire:'B-s1', voc:'FloorScore — TVOC<50 μg/m³', lrv:40, price:45, well:true,
+    use:['piso'], desc:'Más higiénico que alfombra. Absorción moderada. Mejora IIC +8 pts.'
+  },
+  vidrio: {
+    name:'Vidrio Simple 6mm', short:'Vidrio 6mm',
+    cat:'duro',
+    alpha:{ A:[.08,.06,.04,.03,.02,.02,.02,.02], E:[.08,.06,.04,.03,.02,.02,.02,.02] },
+    NRC:.03, STC:28, kg_m2:15, fire:'A1', voc:'Neutro', lrv:88, price:0, well:true,
+    use:['pared_frontal','pared_posterior','pared_izq','pared_der'],
+    desc:'Reflectante en medias y altas frecuencias. Bajo aislamiento acústico si no se lamina.'
+  },
+  drywall: {
+    name:'Drywall 2×15mm + Estructura metálica', short:'Drywall doble',
+    cat:'duro',
+    alpha:{ A:[.10,.08,.05,.03,.03,.03,.04,.04], E:[.10,.08,.05,.03,.03,.03,.04,.04] },
+    NRC:.04, STC:52, kg_m2:25, fire:'A2', voc:'Neutro', lrv:85, price:0, well:true,
+    use:['pared_frontal','pared_posterior','pared_izq','pared_der'],
+    desc:'Bajo amortiguamiento interno. Puede vibrar resonantemente en medias frecuencias.'
+  }
+};
+
+/* STC de elementos constructivos */
+const WALL_DB = {
+  concreto_15:{stc:50,iic:28,name:'Concreto 15cm',mass:360},
+  ladrillo_12:{stc:44,iic:22,name:'Ladrillo 12cm',mass:180},
+  drywall_doble:{stc:52,iic:30,name:'Drywall 2×15mm',mass:25},
+  drywall_simple:{stc:38,iic:22,name:'Drywall Simple',mass:13},
+  bloque_20:{stc:46,iic:25,name:'Bloque H20',mass:280},
+  concreto_20:{stc:55,iic:32,name:'Concreto 20cm',mass:480}
+};
+const GLAZ_STC={simple_6:28,laminado:36,dvh:42,acustico:48};
+const DOOR_STC={hueca:22,solida:32,acustica_40:40,acustica_52:52};
+
+/* RT60 objetivos + reqs WELL
+   signal = nivel de señal directa a 1m (dB·A) según IEC 60268-16 y bibliografía Barron/Egan
+   nc     = ruido de fondo máximo recomendado (dB·A)
+   audioSystem = true si el espacio típicamente usa amplificación */
+const TARGETS = {
+  oficina:       {rt:.50,stc:45,nc:35,signal:65,label:'Oficina Abierta',stiMin:.60,audioSystem:false,
+    signalNote:'Voz conversacional entre colegas'},
+  sala_reuniones:{rt:.60,stc:50,nc:35,signal:65,label:'Sala de Reuniones',stiMin:.65,audioSystem:false,
+    signalNote:'Voz proyectada en mesa de reunión'},
+  aula:          {rt:.60,stc:45,nc:35,signal:67,label:'Aula Educativa',stiMin:.70,audioSystem:false,
+    signalNote:'Docente proyectando voz sin micrófono'},
+  auditorio:     {rt:1.20,stc:55,nc:30,signal:83,label:'Auditorio',stiMin:.60,audioSystem:true,
+    signalNote:'Sistema de audio amplificado estándar'},
+  estudio:       {rt:.30,stc:60,nc:20,signal:78,label:'Estudio de Grabación',stiMin:.75,audioSystem:true,
+    signalNote:'Monitoreo de referencia a nivel profesional'},
+  restaurante:   {rt:.80,stc:38,nc:45,signal:70,label:'Restaurante',stiMin:.50,audioSystem:false,
+    signalNote:'Ambiente de conversación general'},
+  consultorio:   {rt:.50,stc:50,nc:30,signal:63,label:'Consultorio Médico',stiMin:.65,audioSystem:false,
+    signalNote:'Voz moderada — prioridad de privacidad'},
+  open_office:   {rt:.45,stc:45,nc:38,signal:65,label:'Open Office',stiMin:.55,audioSystem:false,
+    signalNote:'Conversación en puesto de trabajo'}
+};
+
+const SURFACES = [
+  {id:'techo',    label:'Techo',            factor:'LW'},
+  {id:'piso',     label:'Piso',             factor:'LW'},
+  {id:'pared_frontal',   label:'Pared Frontal',  factor:'WH'},
+  {id:'pared_posterior', label:'Pared Post.',    factor:'WH'},
+  {id:'pared_izq',  label:'Pared Izq.',     factor:'LH'},
+  {id:'pared_der',  label:'Pared Der.',     factor:'LH'}
+];
+const BANDS = [63,125,250,500,1000,2000,4000,8000];
+const BL = ['63','125','250','500','1k','2k','4k','8k'];
+const DEF_MATS = {
+  techo:'lm50', piso:'ceramico',
+  pared_frontal:'concreto', pared_posterior:'concreto',
+  pared_izq:'concreto', pared_der:'concreto'
+};
+
+let G = {};   // Global results state
+let charts = {};
+
+/* ════════════════ INIT ════════════════ */
+window.addEventListener('DOMContentLoaded', ()=>{
+  buildVDCards();
+  buildSurfaceInputs();
+  updateDerived();
+  updateTargets();  // populates signal level + bg noise from TARGETS
+  document.getElementById('rptDate').textContent = new Date().toLocaleDateString('es',{year:'numeric',month:'long',day:'numeric'});
+  ['dimL','dimW','dimH'].forEach(id=>document.getElementById(id).addEventListener('input',updateDerived));
+  // Reset manual edit flag when room use changes (so bg noise follows preset again)
+  document.getElementById('roomUse').addEventListener('change', ()=>{
+    const bg=document.getElementById('bgNoise');
+    if(bg) delete bg.dataset.manuallyEdited;
+  });
+  setTimeout(()=>calculateAll(), 400);
+});
+
+/* ════════ VALIDATION DASHBOARD CARDS ════════ */
+const VD_DEFS = [
+  {
+    id:'rt', icon:'🔊', name:'Tiempo de Reverberación',
+    param:'RT₆₀ — ISO 3382',
+    desc:'Controla el eco y la claridad general del espacio. Cada uso tiene un tiempo óptimo.',
+    nav:'resultados', panel:'p_rt',
+    explain:'Un RT₆₀ alto causa eco y fatiga auditiva. Un RT₆₀ bajo hace el espacio "seco" e incómodo. Se controla con materiales absorbentes en techo y muros.'
+  },
+  {
+    id:'spl', icon:'📡', name:'Distribución de Presión',
+    param:'SPL / Campo Directo vs Reverberante',
+    desc:'Garantiza que el sonido llegue con nivel adecuado a todos los puntos del local.',
+    nav:'resultados', panel:'p_spl',
+    explain:'La distancia crítica Dc es el límite donde el campo directo iguala al reverberante. Más allá, el sonido es dominado por reflexiones y pierde directividad.'
+  },
+  {
+    id:'stc', icon:'🧱', name:'Aislamiento Acústico',
+    param:'STC / Rw — ASTM E90 / ISO 16283',
+    desc:'Privacidad y silencio frente al exterior, vecinos y ruidos de impacto.',
+    nav:'resultados', panel:'p_stc',
+    explain:'El STC compuesto siempre es menor al muro solo. La ventana o puerta "debilitan" el conjunto. Se calcula con la Ley de Transmisión ponderada por área.'
+  },
+  {
+    id:'sti', icon:'🗣️', name:'Inteligibilidad del Habla',
+    param:'STI — IEC 60268-16 Ed.4',
+    desc:'Mide la comprensión de palabras. Crítico en aulas, salas de reuniones y auditorios.',
+    nav:'resultados', panel:'p_sti',
+    explain:'STI combina la relación señal/ruido (SNR) y el RT₆₀. Un STI≥0.60 es indispensable para comunicación efectiva sin esfuerzo cognitivo adicional.'
+  },
+  {
+    id:'modal', icon:'〰️', name:'Modos Propios (Modal)',
+    param:'Frecuencias propias axiales',
+    desc:'Evita que las bajas frecuencias "retumben" o formen zonas de refuerzo/cancelación.',
+    nav:'resultados', panel:'p_modal',
+    explain:'Las dimensiones de la sala generan resonancias a frecuencias específicas. Si hay dos modos muy juntos (<10Hz), habrá coloración audible. Se controla ajustando proporciones L:W:H.'
+  }
+];
+
+function buildVDCards(){
+  const g = document.getElementById('vdGrid');
+  g.innerHTML = VD_DEFS.map(d=>`
+    <div class="vd-card" id="vdc_${d.id}" onclick="showSec('${d.nav}');showPanel('${d.panel}')">
+      <div class="vd-score" id="vds_${d.id}" style="color:var(--text-secondary);border-color:var(--text-secondary)">—</div>
+      <div class="vd-icon">${d.icon}</div>
+      <div class="vd-name">${d.name}</div>
+      <div class="vd-param">${d.param}</div>
+      <div class="vd-desc">${d.desc}</div>
+      <div style="font-size:.68rem;color:var(--teal);line-height:1.45;margin-bottom:.4rem">${d.explain}</div>
+      <div class="vd-bar"><div class="vd-fill" id="vdf_${d.id}" style="width:0%;background:var(--text-secondary)"></div></div>
+      <div id="vdv_${d.id}" style="font-family:var(--fm);font-size:.65rem;color:var(--text-secondary);margin-top:.3rem">No calculado</div>
+    </div>`).join('');
+}
+
+function updateVDCard(id, score, value, color){
+  const pct = Math.round(score*100);
+  const el = document.getElementById(`vdc_${id}`);
+  const sc = document.getElementById(`vds_${id}`);
+  const fill = document.getElementById(`vdf_${id}`);
+  const val = document.getElementById(`vdv_${id}`);
+  if(!el) return;
+  const c = score>=.8?'var(--green)':score>=.5?'var(--amber)':'var(--rose)';
+  sc.textContent = pct+'%';
+  sc.style.color = c; sc.style.borderColor = c;
+  fill.style.width = pct+'%'; fill.style.background = c;
+  val.textContent = value; val.style.color = c;
+  el.style.borderColor = score>=.8?'rgba(16,185,129,.3)':score>=.5?'rgba(245,158,11,.3)':'rgba(244,63,94,.3)';
+}
+
+/* ════════════════ SURFACE INPUTS ════════════════ */
+function buildSurfaceInputs(){
+  const opts = Object.entries(MAT).map(([k,m])=>`<option value="${k}">${m.name}</option>`).join('');
+  document.getElementById('surfaceInputs').innerHTML = SURFACES.map(s=>`
+    <div class="srow">
+    <div class="srow-lbl" style="font-size:.63rem;line-height:1.3">${s.label}<br><span style="color:var(--text-secondary);font-size:.58rem">${getArea(s.factor,getDims()).toFixed(1)} m²</span></div>
+      <select class="fs" id="mat_${s.id}" onchange="updateAlphaPreview('${s.id}')">${opts}</select>
+      <span class="alpha-preview" id="alprev_${s.id}" title="Coef. absorción @500Hz">α=—</span>
+    </div>`).join('');
+  SURFACES.forEach(s=>{
+    const sel = document.getElementById(`mat_${s.id}`);
+    if(sel && DEF_MATS[s.id]) sel.value = DEF_MATS[s.id];
+    updateAlphaPreview(s.id);
+  });
+  updateDerived();
+}
+
+function updateAlphaPreview(sid){
+  const k = document.getElementById(`mat_${sid}`)?.value;
+  const m = k && MAT[k];
+  const el = document.getElementById(`alprev_${sid}`);
+  if(el && m){
+    const mount = document.getElementById('mountType')?.value || 'E';
+    const a = m.alpha[mount]||m.alpha.A;
+    const thick = m.thickness ? `· ${m.thickness}mm` : '';
+    const sysD = m.systemDepth ? `(sist. ${m.systemDepth[mount]||m.systemDepth.A}mm)` : '';
+    el.innerHTML = `<span style="color:var(--teal)">α=${a[3].toFixed(2)}</span> <span style="color:var(--purple);font-size:.58rem">${thick} ${sysD}</span>`;
+  }
+}
+
+function resetMaterials(){
+  SURFACES.forEach(s=>{ const el=document.getElementById(`mat_${s.id}`); if(el) el.value=DEF_MATS[s.id]; });
+  updateDerived();
+}
+
+/* ════════════════ DERIVED PARAMS ════════════════ */
+function getDims(){ return { L:+document.getElementById('dimL').value||8.5, W:+document.getElementById('dimW').value||6.2, H:+document.getElementById('dimH').value||3.1 }; }
+
+function getArea(factor, d){ return factor==='LW'?d.L*d.W:factor==='WH'?d.W*d.H:d.L*d.H; }
+
+function updateDerived(){
+  const d=getDims(), V=d.L*d.W*d.H, A=2*(d.L*d.W+d.W*d.H+d.L*d.H);
+  setEl('mVol', V.toFixed(1)); setEl('mArea', A.toFixed(1));
+  SURFACES.forEach(s=>updateAlphaPreview(s.id));
+}
+
+function updateTargets(){
+  const use=document.getElementById('roomUse').value, t=TARGETS[use]||TARGETS.oficina;
+  setEl('mTarget',`${t.rt.toFixed(2)} s`);
+  setEl('mStcMin',`STC ≥ ${t.stc}`);
+  document.getElementById('rptTitle').textContent = t.label;
+
+  // Auto-asignar nivel de señal según tipo de espacio
+  const sigEl=document.getElementById('sigLevel');
+  if(sigEl) sigEl.value = t.signal;
+
+  // Auto-asignar ruido de fondo recomendado si no fue editado manualmente
+  const bgEl=document.getElementById('bgNoise');
+  if(bgEl && !bgEl.dataset.manuallyEdited) bgEl.value = t.nc;
+
+  // Actualizar etiqueta de señal en la UI
+  const sigNote=document.getElementById('sigNote');
+  if(sigNote){
+    sigNote.textContent = `${t.signal} dB·A — ${t.signalNote}`;
+    sigNote.style.color = 'var(--teal)';
+  }
+  // Mostrar/ocultar override de audio
+  const audioOverride=document.getElementById('audioOverride');
+  if(audioOverride) audioOverride.style.display = t.audioSystem ? 'none' : 'flex';
+}
+
+function setEl(id,val){ const e=document.getElementById(id); if(e) e.textContent=val; }
+
+/* ════════════════════════════════════════════════════════
+   MOTOR RT60 — FÓRMULA DE SABINE
+   RT₆₀ = 0.161 × V / A
+   A = Σ(αᵢ × Sᵢ) + 4mV  [sabins]
+   ISO 3382-1:2009
+════════════════════════════════════════════════════════ */
+function calcRT60(){
+  const d=getDims(), V=d.L*d.W*d.H;
+  const mount=document.getElementById('mountType').value;
+  const areas={};
+  SURFACES.forEach(s=>areas[s.id]=getArea(s.factor,d));
+  const A=new Array(8).fill(0);
+  const detail=[];
+  SURFACES.forEach(s=>{
+    const k=document.getElementById(`mat_${s.id}`)?.value;
+    const m=k&&MAT[k]; if(!m) return;
+    const alp=m.alpha[mount]||m.alpha.A;
+    const S=areas[s.id];
+    detail.push({surf:s.label,mat:m.name,S,alp,contrib:alp.map(a=>a*S)});
+    alp.forEach((a,i)=>A[i]+=a*S);
+  });
+  // Atenuación del aire ISO 9613-1 (coef por m³)
+  const mAir=[0,0,0,0,.001,.002,.005,.012];
+  const Atot=A.map((a,i)=>a+mAir[i]*V);
+  const RT=Atot.map(a=>a>0.05?(0.161*V)/a:99);
+  return {RT,V,A:Atot,detail,areas,mount};
+}
+
+/* ════════════════════════════════════════════════════════
+   MOTOR SPL — Campo Directo vs Reverberante
+   Lp_directo = Lw - 20·log10(r) - 11 (campo libre)
+   Lp_reverb  = Lw - 10·log10(R) + 6
+   R = A / (1 - ᾱ)  [constante de sala]
+   Dc = √(Qα_total/16π)  [distancia crítica]
+════════════════════════════════════════════════════════ */
+function calcSPL(rtResult){
+  const d=getDims(), V=rtResult.V;
+  const use=document.getElementById('roomUse').value;
+  const t=TARGETS[use]||TARGETS.oficina;
+  const sigOverride=document.getElementById('sigLevelOverride');
+  const Ls = (sigOverride && sigOverride.value && +sigOverride.value > 0)
+    ? +sigOverride.value
+    : t.signal;
+  const A500=rtResult.A[3]; // absorción total @ 500Hz
+  const totalSurf=2*(d.L*d.W+d.W*d.H+d.L*d.H);
+  const aBar=A500/totalSurf; // coef medio
+  const R=A500/(1-Math.max(aBar,0.01));
+  const Dc=Math.sqrt(R/(16*Math.PI));
+  const Q=1; // fuente omnidireccional
+
+  // Curva SPL vs distancia
+  const dists=[];
+  for(let r=0.5;r<=Math.max(d.L,d.W)*1.5;r+=0.3) dists.push(r);
+
+  const Lw=Ls+11+20*Math.log10(1); // Lw a partir de Ls@1m
+  const splDirect=dists.map(r=>Lw-20*Math.log10(r)-11);
+  const splReverb=dists.map(()=>Lw-10*Math.log10(R)+6);
+
+  // Nivel combinado
+  const splTotal=dists.map((r,i)=>{
+    const pDirect=Math.pow(10,splDirect[i]/10);
+    const pReverb=Math.pow(10,splReverb[i]/10);
+    return 10*Math.log10(pDirect+pReverb);
+  });
+
+  const splAtDc=splTotal[dists.findIndex(r=>r>=Dc-0.15)||0]||0;
+  const diagonalRoom=Math.sqrt(d.L*d.L+d.W*d.W+d.H*d.H);
+  const splFar=splTotal[splTotal.length-1];
+
+  // Uniformidad: diferencia SPL entre 1m y diagonal
+  const splAt1=splTotal[dists.findIndex(r=>r>=0.95)||0]||0;
+  const uniformity=splAt1-splFar;
+  const cov=uniformity<=6?'Excelente':uniformity<=10?'Buena':uniformity<=15?'Regular':'Pobre';
+
+  return {R,Dc,splDirect,splReverb,splTotal,dists,Lw,splAtDc,splFar,splAt1,uniformity,cov,aBar};
+}
+
+/* ════════════════════════════════════════════════════════
+   MOTOR STI — IEC 60268-16 Ed.4 (método simplificado)
+   Para cada banda de modulación, se calcula el MTF:
+   m(F,f) = (1 + (2πF·RT/13.8)²)^(-½) × SNR_eff/(1+SNR_eff)
+   STI = MTF promedio ponderado
+════════════════════════════════════════════════════════ */
+function calcSTI(RT){
+  const use=document.getElementById('roomUse').value;
+  const t=TARGETS[use]||TARGETS.oficina;
+  // Señal directa: automática por tipo de espacio, con posibilidad de override manual
+  const sigOverride=document.getElementById('sigLevelOverride');
+  const Ls = (sigOverride && sigOverride.value && +sigOverride.value > 0)
+    ? +sigOverride.value
+    : t.signal;
+  const Ln=+document.getElementById('bgNoise').value||t.nc;
+  const SNR=Ls-Ln;
+
+  // Pesos por banda IEC 60268-16 (125-8kHz)
+  const weights=[.13,.14,.11,.12,.19,.17,.14];
+  // RT por banda 125-8kHz (índices 1-7)
+  const rtBands=RT.slice(1,8);
+
+  // Frecuencias de modulación test
+  const Fmod=[0.63,1.0,1.6,2.5,4.0,6.3,12.5];
+
+  const MTFbands=rtBands.map((rt,bi)=>{
+    // MTF promedio sobre frecuencias de modulación
+    const snrEff=Math.min(SNR,15);
+    const snrFactor=Math.pow(10,snrEff/10)/(1+Math.pow(10,snrEff/10));
+    const mtfMean=Fmod.reduce((acc,F)=>{
+      const mRt=1/Math.sqrt(1+Math.pow(2*Math.PI*F*rt/13.8,2));
+      return acc+mRt;
+    },0)/Fmod.length;
+    return mtfMean*snrFactor;
+  });
+
+  // STI ponderado
+  const sti=MTFbands.reduce((acc,m,i)=>acc+m*weights[i],0);
+  const stiClamp=Math.max(0,Math.min(1,sti));
+
+  const qual=stiClamp>=.75?'Excelente':stiClamp>=.60?'Bueno':stiClamp>=.45?'Regular':stiClamp>=.30?'Pobre':'Inaceptable';
+  const qColor=stiClamp>=.75?'var(--green)':stiClamp>=.60?'var(--teal)':stiClamp>=.45?'var(--amber)':'var(--rose)';
+
+  // Clarity C50 (estimación: diferencia energía directa vs campo total)
+  const c50=10*Math.log10(Math.max(0.01,Math.pow(10,SNR/10)/(1+Math.pow(10,SNR/10))));
+
+  return {sti:stiClamp.toFixed(3),qual,qColor,SNR,MTFbands,c50:c50.toFixed(1),Ls,Ln,signalNote:t.signalNote};
+}
+
+/* ════════════════════════════════════════════════════════
+   MOTOR MODAL — Modos Axiales
+   f(n,L) = n·c / (2L)  donde c=343 m/s
+════════════════════════════════════════════════════════ */
+function calcModes(){
+  const d=getDims(), c=343, maxF=300;
+  const modes=[];
+  ['L','W','H'].forEach(ax=>{
+    const dim=ax==='L'?d.L:ax==='W'?d.W:d.H;
+    for(let n=1;n<=12;n++){
+      const f=(n*c)/(2*dim);
+      if(f>maxF) break;
+      modes.push({ax,n,f:+f.toFixed(2),dim});
+    }
+  });
+  modes.sort((a,b)=>a.f-b.f);
+  for(let i=1;i<modes.length;i++) modes[i].gap=+(modes[i].f-modes[i-1].f).toFixed(2);
+  modes[0].gap='—';
+  const lh=d.L/d.H, wh=d.W/d.H;
+  const boltOk=wh>=1.1&&wh<=4.5&&lh>=1.1&&lh<=8&&lh>=wh;
+  const loudenOk=Math.abs(lh-1.9)/1.9<0.25&&Math.abs(wh-1.4)/1.4<0.25;
+  return {modes,d,lh,wh,boltOk,loudenOk};
+}
+
+/* ════════════════════════════════════════════════════════
+   MOTOR STC COMPUESTO — ASTM E90
+   TL = -10·log10(Σ τᵢ·Sᵢ / S_total)
+════════════════════════════════════════════════════════ */
+function calcSTC(){
+  const wk=document.getElementById('wallMat').value;
+  const gk=document.getElementById('glazType').value;
+  const dk=document.getElementById('doorType').value;
+  const St=+document.getElementById('wallTotalArea').value||24;
+  const Sg=+document.getElementById('winArea').value||2.4;
+  const Sd=+document.getElementById('doorArea').value||2.0;
+  const Sw=Math.max(0,St-Sg-Sd);
+  if(Sw<0) return {error:true};
+  const stcW=WALL_DB[wk]?.stc||50, stcG=GLAZ_STC[gk]||36, stcD=DOOR_STC[dk]||32;
+  const tW=Math.pow(10,-stcW/10), tG=Math.pow(10,-stcG/10), tD=Math.pow(10,-stcD/10);
+  const tTot=(tW*Sw+tG*Sg+tD*Sd)/St;
+  const stcC=-10*Math.log10(tTot);
+  const iicBase=WALL_DB[wk]?.iic||28;
+  const piso=document.getElementById('mat_piso')?.value;
+  const iicAdj=piso==='alfombra_g'?22:piso==='alfombra_f'?10:piso==='vinilico'?8:0;
+  return {stcC:+stcC.toFixed(0),stcW,stcG,stcD,Sw,Sg,Sd,St,tW,tG,tD,iic:Math.min(iicBase+iicAdj,85),wallName:WALL_DB[wk]?.name||wk,mass:WALL_DB[wk]?.mass||200};
+}
+
+/* ════════════════════════════════════════════════════════
+   FUNCIÓN PRINCIPAL
+════════════════════════════════════════════════════════ */
+function calculateAll(){
+  const d=getDims();
+  const use=document.getElementById('roomUse').value;
+  const target=TARGETS[use]||TARGETS.oficina;
+
+  const rt=calcRT60();
+  const spl=calcSPL(rt);
+  const sti=calcSTI(rt.RT);
+  const modal=calcModes();
+  const stc=calcSTC();
+
+  G={rt,spl,sti,modal,stc,target,d,use};
+
+  // Actualizar UIs
+  updateRT_UI(rt,target);
+  updateSPL_UI(spl,d,target);
+  updateSTI_UI(sti,rt.RT,target);
+  updateModal_UI(modal);
+  updateSTC_UI(stc,target);
+  updateDashboard(rt,spl,sti,modal,stc,target);
+  generateWELL();
+
+  showToast('✓ Cálculo completado');
+}
+
+/* ════════════ UI UPDATES ════════════ */
+function colorRT(v,t){ const d=Math.abs(v-t)/t; return d<.20?'mg':d<.40?'mw':'mb'; }
+
+function updateRT_UI(rt,target){
+  const RT=rt.RT;
+  const r500=RT[3], r1k=RT[4], rMid=Math.sqrt(r500*r1k);
+
+  const setM=(id,v,cls)=>{ const e=document.getElementById(id); if(e){e.textContent=v;e.className='mv '+cls;} };
+  setM('r_rt500',r500.toFixed(2),colorRT(r500,target.rt));
+  setM('r_rt1k',r1k.toFixed(2),colorRT(r1k,target.rt));
+  setM('r_rtMid',rMid.toFixed(2),colorRT(rMid,target.rt));
+  document.getElementById('r_rtObj').textContent=target.rt.toFixed(2)+'s';
+
+  // Tabla absorción
+  const tb=document.getElementById('absTbody');
+  if(tb) tb.innerHTML=rt.detail.map(d=>`
+    <tr><td style="font-size:.69rem">${d.surf} — ${d.mat.substring(0,22)}</td>
+    <td>${d.contrib[3].toFixed(1)}</td><td>${d.contrib[4].toFixed(1)}</td>
+    <td>${(MAT[document.getElementById('mat_'+SURFACES.find(s=>s.label===d.surf)?.id)?.value]?.NRC||0).toFixed(2)}</td>
+    </tr>`).join('');
+
+  // Tabla completa
+  const tb2=document.getElementById('rtFullTbody');
+  if(tb2){
+    const status=r=>{const diff=Math.abs(r-target.rt)/target.rt;return diff<.2?'<span class="sb sok"><span class="dot"></span>OK</span>':'<span class="sb sfail"><span class="dot"></span>Revisar</span>';};
+    tb2.innerHTML=`
+      <tr><td>RT₆₀ Calculado (s)</td>${RT.map((v,i)=>`<td class="${colorRT(v,target.rt)}">${v.toFixed(2)}</td>`).join('')}<td>${status(rMid)}</td></tr>
+      <tr><td style="color:var(--amber)">RT₆₀ Objetivo</td>${RT.map(()=>`<td style="color:var(--amber)">${target.rt.toFixed(2)}</td>`).join('')}<td>—</td></tr>
+      <tr><td>Absorción A (sab.)</td>${rt.A.map(a=>`<td>${a.toFixed(1)}</td>`).join('')}<td>—</td></tr>
+      <tr><td>Desviación %</td>${RT.map(v=>{const p=((v-target.rt)/target.rt*100).toFixed(0);const cls=Math.abs(+p)<20?'vg':Math.abs(+p)<40?'vw':'vb';return `<td class="${cls}">${+p>0?'+':''}${p}%</td>`;}).join('')}<td>—</td></tr>`;
+  }
+
+  // Chart
+  drawRT(RT, target.rt);
+  // VD card
+  const diff=Math.abs(rMid-target.rt)/target.rt;
+  const score=Math.max(0,1-diff);
+  updateVDCard('rt',score,`RT₆₀=${rMid.toFixed(2)}s (obj:${target.rt}s)`,score>=.8?'var(--green)':score>=.5?'var(--amber)':'var(--rose)');
+  const el=document.getElementById('ds_rt'); if(el){el.textContent=rMid.toFixed(2)+'s';el.className='mv '+(diff<.2?'mg':diff<.4?'mw':'mb');}
+}
+
+function drawRT(RT, tgt){
+  const ctx=document.getElementById('rtChart')?.getContext('2d'); if(!ctx) return;
+  if(charts.rt) charts.rt.destroy();
+  charts.rt=new Chart(ctx,{
+    type:'line',
+    data:{labels:BL,datasets:[
+      {label:'RT₆₀ Calculado',data:RT,borderColor:'#00e5cc',backgroundColor:'rgba(0,229,204,.08)',borderWidth:2.5,pointRadius:5,tension:.3,fill:true},
+      {label:`Objetivo ${tgt.toFixed(2)}s`,data:BL.map(()=>tgt),borderColor:'#f59e0b',borderWidth:2,borderDash:[6,4],pointRadius:0},
+      {label:'+20%',data:BL.map(()=>tgt*1.2),borderColor:'rgba(245,158,11,.25)',borderWidth:1,borderDash:[3,3],pointRadius:0},
+      {label:'-20%',data:BL.map(()=>tgt*.8),borderColor:'rgba(245,158,11,.25)',borderWidth:1,borderDash:[3,3],pointRadius:0}
+    ]},
+    options:chartOpts('Frecuencia (Hz)','RT₆₀ (s)',0)
+  });
+}
+
+function updateSPL_UI(spl,d,target){
+  const setM=(id,v,cls)=>{const e=document.getElementById(id);if(e){e.textContent=v;e.className='mv '+(cls||'mt');}};
+  setM('r_dc',spl.Dc.toFixed(1)+'m');
+  setM('r_splRef',spl.splAt1.toFixed(0)+' dB');
+  setM('r_splFar',spl.splFar.toFixed(0)+' dB');
+  const covColor=spl.cov==='Excelente'?'mg':spl.cov==='Buena'?'mt':spl.cov==='Regular'?'mw':'mb';
+  setM('r_splCov',spl.cov,covColor);
+
+  document.getElementById('splAnalysis').innerHTML=`
+    <div style="margin-bottom:.8rem"><strong style="color:var(--teal)">Distancia Crítica Dc = ${spl.Dc.toFixed(2)} m</strong><br>
+    A partir de esta distancia el campo reverberante supera al directo.<br>
+    ${spl.Dc<d.L/3?'⚠ Dc pequeña — el espacio es muy reverberante para la absorción actual':'✓ Dc adecuada para las dimensiones del local'}</div>
+    <div style="margin-bottom:.8rem"><strong>Coeficiente medio ᾱ = ${spl.aBar.toFixed(3)}</strong><br>
+    R (constante sala) = ${spl.R.toFixed(1)} m²<br>
+    ${spl.aBar<0.10?'Sala muy reflectante — aumentar absorción total':'Sala con absorción adecuada'}</div>
+    <div><strong>Uniformidad SPL</strong><br>
+    Diferencia 1m→lejos: <span style="color:${spl.cov==='Excelente'||spl.cov==='Buena'?'var(--green)':'var(--amber)'}">${spl.uniformity.toFixed(1)} dB (${spl.cov})</span><br>
+    WELL recomienda ≤6dB de variación en el plano de trabajo.</div>`;
+
+  drawSPL(spl,d);
+  const sScore=spl.cov==='Excelente'?1:spl.cov==='Buena'?.8:spl.cov==='Regular'?.5:.3;
+  updateVDCard('spl',sScore,`Dc=${spl.Dc.toFixed(1)}m · Uniform.${spl.uniformity.toFixed(0)}dB`);
+  const el=document.getElementById('ds_spl');if(el){el.textContent=spl.cov;el.className='mv '+(sScore>=.8?'mg':sScore>=.5?'mt':'mw');}
+}
+
+function drawSPL(spl,d){
+  const ctx=document.getElementById('splChart')?.getContext('2d'); if(!ctx) return;
+  if(charts.spl) charts.spl.destroy();
+  const labels=spl.dists.map(r=>r.toFixed(1));
+  charts.spl=new Chart(ctx,{
+    type:'line',
+    data:{labels,datasets:[
+      {label:'SPL Total',data:spl.splTotal,borderColor:'#00e5cc',borderWidth:2.5,pointRadius:0,tension:.3},
+      {label:'Campo Directo',data:spl.splDirect,borderColor:'#a78bfa',borderWidth:1.5,borderDash:[4,3],pointRadius:0,tension:.3},
+      {label:'Campo Reverberante',data:spl.splReverb,borderColor:'#f59e0b',borderWidth:1.5,borderDash:[4,3],pointRadius:0}
+    ]},
+    options:{...chartOpts('Distancia (m)','SPL (dB)'),plugins:{...chartOpts().plugins,annotation:{annotations:{dc:{type:'line',xMin:spl.Dc.toFixed(1),xMax:spl.Dc.toFixed(1),borderColor:'rgba(244,63,94,.6)',borderWidth:2,borderDash:[4,4]}}}}}
+  });
+}
+
+function updateSTI_UI(sti,RT,target){
+  const s=parseFloat(sti.sti);
+  const sEl=id=>document.getElementById(id);
+  const setM=(id,v,cls)=>{const e=sEl(id);if(e){e.textContent=v;e.className='mv '+cls;}};
+  setM('r_sti',sti.sti,s>=.75?'mg':s>=.60?'mt':s>=.45?'mw':'mb');
+  setM('r_stiQ',sti.qual,s>=.75?'mg':s>=.60?'mt':s>=.45?'mw':'mb');
+  setM('r_snr',sti.SNR>0?'+'+sti.SNR:sti.SNR,sti.SNR>=20?'mg':sti.SNR>=10?'mw':'mb');
+  setM('r_clarity',sti.c50+' dB','mt');
+
+  sEl('stiAnalysis').innerHTML=`
+    <div style="margin-bottom:.8rem">
+      <div style="font-family:var(--fm);font-size:.65rem;color:var(--teal);margin-bottom:.4rem">ESCALA IEC 60268-16</div>
+      ${[['Excelente','≥0.75','mg'],[' Bueno','≥0.60','mt'],['Regular','≥0.45','mw'],['Pobre','≥0.30','mb'],['Inaceptable','<0.30','mb']].map(([q,r,c])=>`
+        <div style="display:flex;justify-content:space-between;padding:.2rem 0;font-family:var(--fm);font-size:.7rem;${q.trim()===sti.qual?'color:var(--teal)':'color:var(--text-secondary)'}">
+          <span>${q.trim()===sti.qual?'▶ ':''} ${q}</span><span>${r}</span>
+        </div>`).join('')}
+    </div>
+    <div style="margin-bottom:.8rem">
+      <strong>SNR efectivo: ${sti.SNR} dB</strong><br>
+      <span style="font-size:.75rem;color:var(--text-secondary)">
+        Señal: ${sti.Ls} dB·A (${sti.signalNote||'automático'}) — Ruido fondo: ${sti.Ln} dB·A<br>
+        ${sti.SNR<10?'⚠ Margen insuficiente — reducir ruido de fondo o verificar si hay sistema de audio':sti.SNR<15?'SNR aceptable — margen ajustado':'✓ Buena relación señal/ruido'}
+      </span>
+    </div>
+    <div>
+      <strong>Claridad C₅₀ ≈ ${sti.c50} dB</strong><br>
+      <span style="font-size:.75rem;color:var(--text-secondary)">C₅₀ > 0dB = energía temprana supera a la tardía. Ideal para comprensión del habla.</span>
+    </div>`;
+
+  drawSTI(sti,RT);
+  const sScore=s>=.75?1:s>=.60?.8:s>=.45?.5:.3;
+  updateVDCard('sti',sScore,`STI=${sti.sti} (${sti.qual})`);
+  const el=document.getElementById('ds_sti');if(el){el.textContent=sti.sti;el.className='mv '+(sScore>=.8?'mg':sScore>=.5?'mt':'mb');}
+}
+
+function drawSTI(sti,RT){
+  const ctx=document.getElementById('stiChart')?.getContext('2d'); if(!ctx) return;
+  if(charts.sti) charts.sti.destroy();
+  const labels=['125','250','500','1k','2k','4k','8k'];
+  charts.sti=new Chart(ctx,{
+    type:'bar',
+    data:{labels,datasets:[
+      {label:'MTF por banda',data:sti.MTFbands.map(v=>+v.toFixed(3)),backgroundColor:sti.MTFbands.map(v=>v>=.7?'rgba(16,185,129,.6)':v>=.45?'rgba(0,229,204,.6)':'rgba(244,63,94,.6)'),borderColor:sti.MTFbands.map(v=>v>=.7?'#10b981':v>=.45?'#00e5cc':'#f43f5e'),borderWidth:1.5},
+      {label:`STI=${sti.sti}`,data:labels.map(()=>parseFloat(sti.sti)),borderColor:'#f59e0b',borderWidth:2,type:'line',pointRadius:0}
+    ]},
+    options:chartOpts('Octava','MTF',0,1)
+  });
+}
+
+function updateModal_UI(modal){
+  document.getElementById('r_lw').textContent=(modal.d.L/modal.d.W).toFixed(3);
+  document.getElementById('r_lh').textContent=modal.lh.toFixed(3);
+  document.getElementById('r_wh').textContent=modal.wh.toFixed(3);
+
+  document.getElementById('modalCriteria').innerHTML=`
+    <div style="color:var(--teal);margin-bottom:.5rem">▸ Criterio Louden (1971)</div>
+    L:W:H ideal ≈ 1.9 : 1.4 : 1<br>Su sala: ${modal.lh.toFixed(2)} : ${modal.wh.toFixed(2)} : 1.00
+    — <span style="color:${modal.loudenOk?'var(--green)':'var(--amber)'}">${modal.loudenOk?'✓ Favorable':'△ Mejorable'}</span>
+    <div style="color:var(--teal);margin:.5rem 0 .3rem">▸ Área de Bolt (1946)</div>
+    ${modal.boltOk?'<span style="color:var(--green)">✓ Dentro del área favorable de Bolt</span>':'<span style="color:var(--rose)">✗ Fuera — riesgo de coloración modal</span>'}
+    <div style="color:var(--teal);margin:.5rem 0 .3rem">▸ Modos aglomerados</div>
+    ${modal.modes.filter(m=>m.gap!=='—'&&+m.gap<10).length>0?'<span style="color:var(--rose)">⚠ '+modal.modes.filter(m=>m.gap!=='—'&&+m.gap<10).length+' modos con separación <10Hz — coloración probable</span>':'<span style="color:var(--green)">✓ Separación modal adecuada</span>'}`;
+
+  const tb=document.getElementById('modeTbody');
+  if(tb) tb.innerHTML=modal.modes.slice(0,15).map((m,i)=>{
+    const gCls=m.gap==='—'?'':+m.gap<10?'vb':+m.gap<25?'vw':'vg';
+    return `<tr><td>${i+1}</td><td style="color:${m.ax==='L'?'var(--teal)':m.ax==='W'?'var(--amber)':'var(--purple)'}">${m.ax}</td><td>${m.f}</td><td>${m.n}</td><td class="${gCls}">${m.gap} Hz</td></tr>`;
+  }).join('');
+
+  drawModes(modal);
+  const prob=modal.modes.filter(m=>m.gap!=='—'&&+m.gap<10).length;
+  const mScore=modal.boltOk&&modal.loudenOk&&prob===0?1:modal.boltOk&&prob<3?.7:prob<5?.5:.3;
+  updateVDCard('modal',mScore,`Bolt:${modal.boltOk?'OK':'⚠'} · Louden:${modal.loudenOk?'OK':'△'} · Aglom.:${prob}`);
+  const el=document.getElementById('ds_spl'); // reuse for modal check
+}
+
+function drawModes(modal){
+  const canvas=document.getElementById('modeCanvas'); if(!canvas) return;
+  const dpr=window.devicePixelRatio||1;
+  canvas.width=canvas.offsetWidth*dpr; canvas.height=200*dpr;
+  const ctx=canvas.getContext('2d'); ctx.scale(dpr,dpr);
+  const W=canvas.offsetWidth||700, H=200;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='rgba(0,0,0,.25)'; ctx.fillRect(0,0,W,H);
+  const pad={l:45,r:15,t:20,b:30};
+  const pw=W-pad.l-pad.r, ph=H-pad.t-pad.b;
+  const maxF=300, xOf=f=>pad.l+(f/maxF)*pw;
+  ctx.strokeStyle='rgba(0,229,204,.25)'; ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(pad.l,pad.t);ctx.lineTo(pad.l,H-pad.b);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(pad.l,H-pad.b);ctx.lineTo(W-pad.r,H-pad.b);ctx.stroke();
+  [50,100,150,200,250,300].forEach(f=>{
+    const x=xOf(f);
+    ctx.strokeStyle='rgba(0,229,204,.07)'; ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(x,pad.t);ctx.lineTo(x,H-pad.b);ctx.stroke();
+    ctx.fillStyle='#7a8fad';ctx.font=`9px Space Mono`;ctx.textAlign='center';
+    ctx.fillText(f+'Hz',x,H-pad.b+14);
+  });
+  ctx.fillStyle='rgba(245,158,11,.05)';ctx.fillRect(pad.l,pad.t,pw*.85,ph);
+  ctx.strokeStyle='rgba(245,158,11,.25)';ctx.setLineDash([4,4]);
+  ctx.strokeRect(pad.l,pad.t,pw*.85,ph);ctx.setLineDash([]);
+  const axC={L:'#00e5cc',W:'#f59e0b',H:'#a78bfa'};
+  const axY={L:ph*.22,W:ph*.52,H:ph*.80};
+  ['L','W','H'].forEach(ax=>{ctx.fillStyle=axC[ax];ctx.font='bold 9px Space Mono';ctx.textAlign='left';ctx.fillText('EJE '+ax,2,pad.t+axY[ax]);});
+  modal.modes.forEach(m=>{
+    const x=xOf(m.f), y=pad.t+axY[m.ax];
+    ctx.strokeStyle=axC[m.ax]||'#fff'; ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(x,y-10);ctx.lineTo(x,y+10);ctx.stroke();
+    ctx.fillStyle=axC[m.ax]||'#fff';
+    ctx.beginPath();ctx.arc(x,y,3.5,0,Math.PI*2);ctx.fill();
+    if(m.n<=2){ctx.fillStyle='rgba(255,255,255,.65)';ctx.font='7px Space Mono';ctx.textAlign='center';ctx.fillText(m.n,x,y-13);}
+  });
+  ctx.fillStyle='#7a8fad';ctx.font='8px Space Mono';ctx.textAlign='left';
+  ctx.fillText('Modos axiales — eje L (teal) · W (amber) · H (purple)',pad.l,pad.t-5);
+}
+
+function updateSTC_UI(stc,target){
+  if(stc.error){['r_stcComp','r_stcWall','r_stcGlaz','r_iic'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent='Err';});return;}
+  const cls=stc.stcC>=target.stc?'mg':stc.stcC>=target.stc-5?'mw':'mb';
+  const setM=(id,v,c)=>{const e=document.getElementById(id);if(e){e.textContent=v;e.className='mv '+(c||'mt');}};
+  setM('r_stcComp',stc.stcC,cls);
+  setM('r_stcWall','STC '+stc.stcW);
+  setM('r_stcGlaz','STC '+stc.stcG);
+  setM('r_iic','IIC '+stc.iic,stc.iic>=50?'mg':'mw');
+
+  document.getElementById('stcBreak').innerHTML=`
+    <div class="qt-row qt-h"><span>Elemento</span><span style="text-align:right">Área m²</span><span style="text-align:right">STC</span><span style="text-align:right">τ×10⁻⁴</span><span style="text-align:right">Peso %</span></div>
+    ${[['Muro '+stc.wallName,stc.Sw,stc.stcW,stc.tW],[document.getElementById('glazType').options[document.getElementById('glazType').selectedIndex]?.text,stc.Sg,stc.stcG,stc.tG],[document.getElementById('doorType').options[document.getElementById('doorType').selectedIndex]?.text,stc.Sd,stc.stcD,stc.tD]].map(([n,S,stcv,t])=>`
+      <div class="qt-row"><span style="font-size:.68rem">${n}</span><span class="qt-v">${S.toFixed(1)}</span><span class="qt-v">${stcv}</span><span class="qt-v">${(t*1e4).toFixed(2)}</span><span class="qt-v">${((t*S/(stc.tW*stc.Sw+stc.tG*stc.Sg+stc.tD*stc.Sd))*100).toFixed(0)}%</span></div>`).join('')}
+    <div class="qt-row" style="border-top:1px solid var(--teal);color:var(--teal);margin-top:.4rem"><span>COMPUESTO</span><span class="qt-v">${stc.St.toFixed(1)}</span><span class="qt-v ${cls}">${stc.stcC}</span><span class="qt-v">—</span><span class="qt-v">—</span></div>
+    <div style="margin-top:.7rem;font-size:.75rem;color:var(--text-secondary)">Objetivo WELL ${target.label}: STC ≥ ${target.stc} — ${stc.stcC>=target.stc?'<span style="color:var(--green)">✓ Cumple</span>':'<span style="color:var(--rose)">✗ No cumple</span>'}</div>`;
+
+  drawMass(stc);
+  const sScore=stc.stcC>=target.stc?1:stc.stcC>=target.stc-5?.7:stc.stcC>=target.stc-10?.5:.3;
+  updateVDCard('stc',sScore,`STC ${stc.stcC} (req:${target.stc})`);
+  const el=document.getElementById('ds_stc');if(el){el.textContent='STC '+stc.stcC;el.className='mv '+cls;}
+}
+
+function drawMass(stc){
+  const ctx=document.getElementById('massChart')?.getContext('2d');if(!ctx)return;
+  if(charts.mass) charts.mass.destroy();
+  const freqs=[125,250,500,1000,2000,4000];
+  const massLaw=(M,f)=>Math.max(0,20*Math.log10(M*f)-47.3);
+  charts.mass=new Chart(ctx,{
+    type:'line',
+    data:{labels:freqs.map(f=>f>=1000?f/1000+'k':f+'Hz'),datasets:[
+      {label:'Muro (Ley de masas)',data:freqs.map(f=>massLaw(stc.mass,f)),borderColor:'#00e5cc',borderWidth:2,tension:.2,pointRadius:3},
+      {label:'Vidrio (Ley de masas)',data:freqs.map(f=>massLaw(15,f)),borderColor:'#a78bfa',borderWidth:2,tension:.2,pointRadius:3},
+      {label:`STC muro medido (${stc.stcW})`,data:freqs.map(()=>stc.stcW),borderColor:'#f59e0b',borderDash:[5,4],borderWidth:1.5,pointRadius:0},
+      {label:`STC compuesto (${stc.stcC})`,data:freqs.map(()=>stc.stcC),borderColor:'#f43f5e',borderDash:[3,3],borderWidth:1.5,pointRadius:0}
+    ]},
+    options:chartOpts('Frecuencia','TL / STC (dB)',0)
+  });
+}
+
+function updateDashboard(rt,spl,sti,modal,stc,target){
+  const RT=rt.RT, r500=RT[3], r1k=RT[4], rMid=Math.sqrt(r500*r1k);
+  const rtOk=Math.abs(rMid-target.rt)/target.rt<.2;
+  const stiOk=parseFloat(sti.sti)>=target.stiMin;
+  const stcOk=stc.stcC>=target.stc;
+  const splOk=spl.cov==='Excelente'||spl.cov==='Buena';
+  const modalOk=modal.boltOk&&modal.loudenOk;
+
+  const total=([rtOk,stiOk,stcOk,splOk,modalOk].filter(Boolean).length/5*100).toFixed(0);
+  const scoreEl=document.getElementById('ds_rt');
+  const sum=document.getElementById('ds_summary');
+  if(sum){
+    const issues=[];
+    if(!rtOk) issues.push(`RT₆₀ medio (${rMid.toFixed(2)}s) está ${rMid>target.rt?'por encima':'por debajo'} del objetivo ${target.rt}s`);
+    if(!stiOk) issues.push(`STI (${sti.sti}) por debajo del mínimo ${target.stiMin} para ${target.label}`);
+    if(!stcOk) issues.push(`STC compuesto (${stc.stcC}) insuficiente — requiere STC ≥ ${target.stc}`);
+    if(!splOk) issues.push(`Distribución SPL: ${spl.cov} — distancia crítica Dc muy pequeña`);
+    if(!modalOk) issues.push(`Proporciones L:W:H no favorables para control modal`);
+    sum.innerHTML=issues.length===0
+      ?'<span style="color:var(--green)">✓ Todos los parámetros cumplen los objetivos del proyecto.</span>'
+      :`<strong style="color:var(--rose)">Déficits detectados:</strong><br>${issues.map(i=>`<div style="padding:.2rem 0 .2rem .5rem;border-left:2px solid var(--rose);margin-top:.4rem">• ${i}</div>`).join('')}`;
+  }
+
+  const globalEl=document.getElementById('dashGlobal');
+  if(globalEl){
+    const c=+total>=80?'var(--green)':+total>=60?'var(--amber)':'var(--rose)';
+    globalEl.innerHTML=`<div style="display:flex;align-items:center;gap:.8rem">
+      <div style="font-family:var(--fd);font-size:2rem;font-weight:800;color:${c}">${total}%</div>
+      <div><div style="font-family:var(--fm);font-size:.65rem;color:var(--text-secondary);letter-spacing:.1em">SCORE GLOBAL</div>
+      <div class="pbar" style="width:160px"><div class="pfill" style="width:${total}%;background:${c}"></div></div></div>
+    </div>`;
+  }
+}
+
+/* ════════════════ MOTOR DE RECOMENDACIONES ════════════════ */
+function generateRecommendations(){
+  if(!G.rt){ calculateAll(); }
+  const {rt,spl,sti,modal,stc,target,d} = G;
+  const RT=rt.RT, rMid=Math.sqrt(RT[3]*RT[4]);
+  const sDiff=(rMid-target.rt)/target.rt; // positivo = demasiado reverberante
+
+  // ── DIAGNÓSTICO ──────────────────────────────────────────
+  const diags=[];
+  if(sDiff>0.2) diags.push({type:'fail',icon:'🔊',title:`RT₆₀ ALTO: ${rMid.toFixed(2)}s (objetivo ${target.rt}s)`,detail:`Déficit de absorción de ${((rMid-target.rt)/rMid*100).toFixed(0)}%. Sala demasiado reverberante para ${target.label}. Incrementar absorción en techo y muros.`});
+  else if(sDiff<-0.3) diags.push({type:'warn',icon:'🔊',title:`RT₆₀ BAJO: ${rMid.toFixed(2)}s (objetivo ${target.rt}s)`,detail:'Sala sobre-amortiguada. Reducir absorción o usar materiales reflectantes selectivos.'});
+  else diags.push({type:'ok',icon:'🔊',title:`RT₆₀ OK: ${rMid.toFixed(2)}s ≈ ${target.rt}s`,detail:'La reverberación está dentro del rango objetivo.'});
+
+  if(parseFloat(sti.sti)<target.stiMin) diags.push({type:'fail',icon:'🗣️',title:`STI INSUFICIENTE: ${sti.sti} < ${target.stiMin}`,detail:`Inteligibilidad ${sti.qual}. ${sti.SNR<10?'Reducir ruido de fondo (HVAC, exterior) a <'+target.nc+'dBA. ':''}Reducir RT₆₀ también mejora STI.`});
+  if(stc.stcC<target.stc) diags.push({type:'fail',icon:'🧱',title:`STC INSUFICIENTE: ${stc.stcC} < ${target.stc}`,detail:'Aislamiento compuesto insuficiente. '+(stc.stcG<stc.stcW-8?'La ventana es el elemento crítico — mejorar vidrio. ':'')+(stc.stcD<stc.stcW-10?'La puerta es el punto débil — instalar puerta acústica con burlete. ':'')});
+  if(!modal.boltOk||!modal.loudenOk) diags.push({type:'warn',icon:'〰️',title:'PROPORCIONES MODALES DESFAVORABLES',detail:'Las dimensiones L:W:H generan acumulación de modos de sala en bajas frecuencias. Considerar ajuste de dimensiones o trampas de graves.'});
+  if(spl.cov==='Regular'||spl.cov==='Pobre') diags.push({type:'warn',icon:'📡',title:`SPL NO UNIFORME: Variación ${spl.uniformity.toFixed(0)}dB`,detail:`Distancia crítica Dc=${spl.Dc.toFixed(1)}m pequeña. Aumentar absorción mejora uniformidad.`});
+
+  document.getElementById('diagContent').innerHTML=diags.map(dg=>{
+    const c=dg.type==='ok'?'var(--green)':dg.type==='warn'?'var(--amber)':'var(--rose)';
+    const bg=dg.type==='ok'?'rgba(16,185,129,.06)':dg.type==='warn'?'rgba(245,158,11,.06)':'rgba(244,63,94,.06)';
+    return `<div style="display:flex;gap:.7rem;padding:.6rem;border-radius:7px;background:${bg};margin-bottom:.5rem;border:1px solid ${c}33">
+      <span style="font-size:1.2rem">${dg.icon}</span>
+      <div><div style="font-weight:600;color:${c};margin-bottom:.2rem;font-size:.85rem">${dg.title}</div>
+      <div style="font-size:.78rem;color:var(--text-secondary)">${dg.detail}</div></div>
+    </div>`;
+  }).join('');
+
+  // ── MOTOR DE PROPUESTA POR SUPERFICIE ────────────────────
+  /*
+   * Lógica acústica diferenciada por superficie:
+   *
+   * TECHO:       Máxima absorción — superficie más grande y eficiente.
+   *              Tipo E (suspendido) preferido. Elige espesor según déficit.
+   *
+   * PISO:        Absorción moderada + confort de impacto (IIC).
+   *              Material según uso: estudio→alfombra gruesa, oficina→LVT/alfombra fina,
+   *              auditorio/aula→alfombra fina, restaurante/consultorio→vinílico.
+   *
+   * PARED FRONTAL (detrás del orador/pantalla):
+   *              REFLECTANTE o ligeramente absorbente — refuerza la señal directa.
+   *              Si hay modal bajo: Helmholtz. Sino: madera perforada o ranurada estética.
+   *
+   * PARED POSTERIOR (detrás del oyente):
+   *              ABSORBENTE — evita reflexiones tardías que causan eco.
+   *              LM 50mm o melamina según espacio. Si hay modo bajo: Helmholtz adicional.
+   *
+   * PARED IZQ / PARED DER (paredes laterales):
+   *              Tratamiento simétrico y selectivo según absorción restante necesaria.
+   *              Solo el 50–70% de la superficie (el resto puede ser reflectante para difusión).
+   *              Material según déficit restante y uso.
+   */
+
+  const mount = document.getElementById('mountType')?.value || 'E';
+  const deficitA = sDiff > 0.15 ? (0.161 * rt.V / target.rt) - rt.A[3] : 0;
+  const areas = {
+    techo:          d.L * d.W,
+    piso:           d.L * d.W,
+    pared_frontal:  d.W * d.H,
+    pared_posterior:d.W * d.H,
+    pared_izq:      d.L * d.H,
+    pared_der:      d.L * d.H
+  };
+
+  // Absorción ya existente por superficie con materiales actuales
+  const existAbsorp = {};
+  SURFACES.forEach(s => {
+    const k = document.getElementById(`mat_${s.id}`)?.value;
+    const m = k && MAT[k];
+    const a = m ? (m.alpha[mount] || m.alpha.A)[3] : 0;
+    existAbsorp[s.id] = a * areas[s.id];
+  });
+
+  let remainDef = deficitA; // sabins que aún faltan cubrir, se descuenta por superficie
+  const proposals = [];
+
+  // ── 1. TECHO ─────────────────────────────────────────────
+  {
+    const S = areas.techo;
+    let matKey;
+    const alpNeeded = remainDef / S;
+    if (alpNeeded > 0.65) matKey = 'lm100';
+    else if (alpNeeded > 0.30) matKey = 'lm50';
+    else if (deficitA > 0) matKey = 'lm50';
+    else matKey = 'lm25';
+
+    // Auditorios y estudios: melamina ofrece mejor NRC en espumas
+    if (G.use === 'estudio') matKey = 'melamina50';
+
+    const m = MAT[matKey];
+    const alp = (m.alpha[mount] || m.alpha.A)[3];
+    const contrib = alp * S;
+    remainDef = Math.max(0, remainDef - contrib);
+
+    proposals.push({
+      surfId: 'techo', surfLabel: 'Techo',
+      matKey, area: S, areaLabel: `${S.toFixed(1)} m² (100% de la superficie)`,
+      contrib: contrib.toFixed(1),
+      reason: `Superficie más eficiente del recinto. ${deficitA > 0 ? `Aporta ${contrib.toFixed(0)} sab. del déficit de ${deficitA.toFixed(0)} sab.` : 'Mantenimiento del nivel de absorción.'}`
+    });
+  }
+
+  // ── 2. PISO ───────────────────────────────────────────────
+  {
+    const S = areas.piso;
+    let matKey, pct;
+    switch (G.use) {
+      case 'estudio':      matKey = 'alfombra_g'; pct = 1.0; break;
+      case 'consultorio':  matKey = 'alfombra_g'; pct = 1.0; break;
+      case 'oficina':
+      case 'open_office':
+      case 'sala_reuniones': matKey = 'alfombra_f'; pct = 1.0; break;
+      case 'aula':         matKey = 'vinilico';   pct = 1.0; break;
+      case 'restaurante':  matKey = 'vinilico';   pct = 1.0; break;
+      case 'auditorio':    matKey = 'alfombra_f'; pct = 0.8; break; // butacas cubren parte
+      default:             matKey = 'ceramico';   pct = 1.0;
+    }
+    const areaEfectiva = S * pct;
+    const m = MAT[matKey];
+    const alp = (m.alpha[mount] || m.alpha.A)[3];
+    const contrib = alp * areaEfectiva;
+    remainDef = Math.max(0, remainDef - contrib);
+
+    proposals.push({
+      surfId: 'piso', surfLabel: 'Piso',
+      matKey, area: areaEfectiva, areaLabel: `${areaEfectiva.toFixed(1)} m² (${Math.round(pct*100)}% de ${S.toFixed(1)} m²)`,
+      contrib: contrib.toFixed(1),
+      reason: matKey === 'ceramico'
+        ? 'Piso duro según uso — no requiere tratamiento acústico especial'
+        : `Absorción de medias-altas frecuencias + control de ruido de impacto (IIC ${matKey==='alfombra_g'?'+22':matKey==='alfombra_f'?'+10':'+8'} pts)`
+    });
+  }
+
+  // ── 3. PARED POSTERIOR (detrás del oyente) ────────────────
+  {
+    const S = areas.pared_posterior;
+    let matKey, pct;
+    // La pared posterior debe absorber para evitar eco de flutter
+    if (G.use === 'estudio') { matKey = 'melamina50'; pct = 1.0; }
+    else if (G.use === 'auditorio') { matKey = 'lm100'; pct = 0.85; }
+    else if (remainDef > S * 0.4) { matKey = 'lm50'; pct = 0.80; }
+    else { matKey = 'pet25'; pct = 0.60; }
+
+    // Si hay problema de modos bajos: añadir Helmholtz en zona baja
+    const needsHelmholtz = !modal.boltOk || rt.RT[1] > target.rt * 1.6;
+    const areaAbs = S * pct;
+    const areaHelm = needsHelmholtz ? S * 0.20 : 0;
+    const areaEfectiva = Math.min(areaAbs, S - areaHelm);
+
+    const m = MAT[matKey];
+    const alp = (m.alpha[mount] || m.alpha.A)[3];
+    const contrib = alp * areaEfectiva;
+    remainDef = Math.max(0, remainDef - contrib);
+
+    proposals.push({
+      surfId: 'pared_posterior', surfLabel: 'Pared Posterior',
+      matKey, area: areaEfectiva,
+      areaLabel: `${areaEfectiva.toFixed(1)} m² (${Math.round(pct*100)}% de ${S.toFixed(1)} m²)`,
+      contrib: contrib.toFixed(1),
+      reason: `Absorbe reflexiones tardías que llegan al oyente desde atrás — evita eco de flutter.${needsHelmholtz ? ` Zona baja (${areaHelm.toFixed(1)} m²) reservada para Helmholtz 125Hz.` : ''}`
+    });
+
+    if (needsHelmholtz && areaHelm > 0) {
+      proposals.push({
+        surfId: 'pared_posterior', surfLabel: 'Pared Posterior — zona baja',
+        matKey: 'helmholtz', area: areaHelm,
+        areaLabel: `${areaHelm.toFixed(1)} m² (20% inferior de ${S.toFixed(1)} m²)`,
+        contrib: (MAT.helmholtz.alpha.A[1] * areaHelm).toFixed(1),
+        reason: 'Trampa de graves — controla el modo axial L a 125Hz. Instalar en la parte baja del muro (0–1.2m altura).'
+      });
+    }
+  }
+
+  // ── 4. PARED FRONTAL (zona del orador / pantalla) ─────────
+  {
+    const S = areas.pared_frontal;
+    let matKey, pct;
+    // La pared frontal debe ser reflectante o semi-reflectante (refuerza señal directa)
+    // Solo se absorbe parcialmente y con materiales estéticos
+    if (G.use === 'estudio') { matKey = 'melamina50'; pct = 0.70; }
+    else if (G.use === 'auditorio') { matKey = 'madera_perf'; pct = 0.50; } // refleja parte
+    else if (G.use === 'aula') { matKey = 'madera_perf'; pct = 0.40; }
+    else { matKey = 'madera_ran'; pct = 0.45; } // panel estético ranurado
+
+    const areaEfectiva = S * pct;
+    const m = MAT[matKey];
+    const alp = (m.alpha[mount] || m.alpha.A)[3];
+    const contrib = alp * areaEfectiva;
+    remainDef = Math.max(0, remainDef - contrib);
+
+    proposals.push({
+      surfId: 'pared_frontal', surfLabel: 'Pared Frontal',
+      matKey, area: areaEfectiva,
+      areaLabel: `${areaEfectiva.toFixed(1)} m² (${Math.round(pct*100)}% de ${S.toFixed(1)} m²) — resto reflectante`,
+      contrib: contrib.toFixed(1),
+      reason: `Tratamiento parcial — la pared frontal debe conservar reflectividad para reforzar la señal directa hacia el oyente. El ${Math.round((1-pct)*100)}% restante permanece reflectante.`
+    });
+  }
+
+  // ── 5. PAREDES LATERALES IZQ y DER ───────────────────────
+  //  Se aplica tratamiento simétrico. El porcentaje depende del déficit restante.
+  {
+    const Sizq = areas.pared_izq;
+    const Sder = areas.pared_der;
+    // Determinar si aún falta absorción
+    let matKey, pct;
+    if (remainDef > (Sizq + Sder) * 0.3) {
+      // Déficit importante: absorber buen porcentaje de laterales
+      matKey = G.use === 'estudio' ? 'melamina50' : 'lm50';
+      pct = 0.65;
+    } else if (remainDef > 5) {
+      matKey = 'pet25';
+      pct = 0.50;
+    } else {
+      // Sin déficit: solo paneles decorativos parciales
+      matKey = 'madera_ran';
+      pct = 0.30;
+    }
+
+    const areaIzq = Sizq * pct;
+    const areaDer = Sder * pct;
+    const m = MAT[matKey];
+    const alp = (m.alpha[mount] || m.alpha.A)[3];
+    const contribIzq = (alp * areaIzq).toFixed(1);
+    const contribDer = (alp * areaDer).toFixed(1);
+    remainDef = Math.max(0, remainDef - alp * (areaIzq + areaDer));
+
+    // Pared Izquierda
+    proposals.push({
+      surfId: 'pared_izq', surfLabel: 'Pared Izquierda',
+      matKey, area: areaIzq,
+      areaLabel: `${areaIzq.toFixed(1)} m² (${Math.round(pct*100)}% de ${Sizq.toFixed(1)} m²) — resto reflectante`,
+      contrib: contribIzq,
+      reason: `Tratamiento simétrico lateral. El ${Math.round((1-pct)*100)}% restante permanece reflectante para generar campo difuso uniforme.`
+    });
+
+    // Pared Derecha — mismo material, misma lógica, área exacta propia
+    proposals.push({
+      surfId: 'pared_der', surfLabel: 'Pared Derecha',
+      matKey, area: areaDer,
+      areaLabel: `${areaDer.toFixed(1)} m² (${Math.round(pct*100)}% de ${Sder.toFixed(1)} m²) — resto reflectante`,
+      contrib: contribDer,
+      reason: `Simétrica a la pared izquierda — el tratamiento simétrico evita coloración lateral y reflexiones tempranas desiguales.`
+    });
+  }
+
+  // ── RESUMEN ABSORCIÓN TOTAL PROPUESTA ────────────────────
+  const totalContrib = proposals.reduce((acc, p) => acc + parseFloat(p.contrib), 0);
+  const rtProyectado = 0.161 * rt.V / Math.max(rt.A[3] - proposals.reduce((acc,p)=>{
+    // absorción existente que se reemplaza
+    const exA = existAbsorp[p.surfId] || 0;
+    return acc + exA;
+  }, 0) + totalContrib, 0.1);
+
+  // ── RENDER PROPUESTA ─────────────────────────────────────
+  // Agrupar por superficie para mostrar orden lógico visual
+  const surfOrder = ['techo','piso','pared_frontal','pared_posterior','pared_izq','pared_der'];
+  const sortedProposals = [...proposals].sort((a,b) =>
+    surfOrder.indexOf(a.surfId) - surfOrder.indexOf(b.surfId)
+  );
+
+  document.getElementById('recProposal').innerHTML = `
+    <div style="background:rgba(0,229,204,.05);border:1px solid rgba(0,229,204,.2);border-radius:8px;padding:.9rem;margin-bottom:1rem;display:flex;gap:1.5rem;flex-wrap:wrap">
+      <div><div class="fl">RT₆₀ actual</div><div style="font-family:var(--fm);font-size:1.1rem;color:var(--rose)">${Math.sqrt(rt.RT[3]*rt.RT[4]).toFixed(2)} s</div></div>
+      <div style="color:var(--text-secondary);font-size:1.2rem;align-self:center">→</div>
+      <div><div class="fl">RT₆₀ proyectado con propuesta</div><div style="font-family:var(--fm);font-size:1.1rem;color:var(--green)">${rtProyectado.toFixed(2)} s</div></div>
+      <div style="color:var(--text-secondary);font-size:1.2rem;align-self:center">vs</div>
+      <div><div class="fl">Objetivo ${target.label}</div><div style="font-family:var(--fm);font-size:1.1rem;color:var(--amber)">${target.rt.toFixed(2)} s</div></div>
+      <div style="margin-left:auto;text-align:right">
+        <div class="fl">Absorción total propuesta</div>
+        <div style="font-family:var(--fm);font-size:1.1rem;color:var(--teal)">${totalContrib.toFixed(0)} sab.</div>
+      </div>
+    </div>
+    <div class="rec-box">
+      <div class="rec-title">📐 Propuesta superficie por superficie — ${target.label}</div>
+      ${sortedProposals.map((p, i) => {
+        const m = MAT[p.matKey] || MAT.lm50;
+        const alp = (m.alpha[mount] || m.alpha.A)[3];
+        const thick = m.thickness || '—';
+        const sysD = m.systemDepth ? (m.systemDepth[mount] || m.systemDepth.A) : '—';
+        const mNote = m.mountNote ? (m.mountNote[mount] || m.mountNote.A) : '';
+        const surfIcon = {techo:'⬆',piso:'⬇',pared_frontal:'◀',pared_posterior:'▶',pared_izq:'◁',pared_der:'▷'}[p.surfId]||'■';
+        return `<div class="rec-item">
+          <div class="rec-num" style="background:rgba(0,229,204,.15);color:var(--teal);border:1px solid rgba(0,229,204,.3);font-size:.9rem">${surfIcon}</div>
+          <div class="rec-text" style="width:100%">
+            <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-bottom:.2rem">
+              <div class="rec-mat">${p.surfLabel}</div>
+              <div style="font-family:var(--fm);font-size:.65rem;color:var(--text-secondary)">→</div>
+              <div style="font-size:.88rem;font-weight:600;color:var(--teal)">${m.name}</div>
+            </div>
+            <div style="font-family:var(--fm);font-size:.67rem;color:var(--amber);margin-bottom:.35rem">${p.areaLabel}</div>
+            <div class="rec-detail" style="margin-bottom:.4rem">α=${alp.toFixed(2)} @500Hz · NRC=${m.NRC} · ${m.fire.split('/')[0]} · ${m.voc.split('—')[0].trim()}</div>
+            <div style="display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:.35rem">
+              <span style="font-family:var(--fm);font-size:.65rem;background:rgba(0,229,204,.1);border:1px solid rgba(0,229,204,.2);border-radius:4px;padding:2px 7px;color:var(--teal)">📏 ${thick}mm panel</span>
+              <span style="font-family:var(--fm);font-size:.65rem;background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.2);border-radius:4px;padding:2px 7px;color:var(--purple)">🏗 ${sysD}mm sistema</span>
+              <span style="font-family:var(--fm);font-size:.62rem;color:var(--text-secondary)">${mNote}</span>
+            </div>
+            <div class="rec-qty">Absorción aportada: <strong>${p.contrib} sab.</strong> · ${m.price>0?'Costo ref.: $'+(p.area*m.price).toFixed(0)+' USD':''}</div>
+            <div style="font-size:.72rem;color:var(--text-secondary);margin-top:.2rem;line-height:1.5">${p.reason}</div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+    <div style="margin-top:.8rem;padding:.7rem;background:rgba(0,229,204,.05);border-radius:7px;font-size:.78rem;color:var(--text-secondary)">
+      💡 <strong style="color:var(--teal)">Aplicar propuesta:</strong> Haz clic en "Propuesta automática de materiales" en la sección Entrada para actualizar los cálculos con estos materiales.
+    </div>`;
+
+  generateQuantityTable(proposals,areas,d);
+  generateMaterialMap(proposals);
+  showToast('✨ Propuesta generada');
+}
+
+function generateQuantityTable(proposals, areas, d){
+  const WASTE=1.05;
+  const mount=document.getElementById('mountType')?.value||'E';
+  const rows=[];
+
+  // Materiales absorbentes propuestos — agrupar por matKey para evitar filas duplicadas
+  const matGroups = {};
+  proposals.forEach(p => {
+    const m = MAT[p.matKey]; if(!m || m.cat==='duro') return;
+    const key = p.matKey;
+    if(!matGroups[key]) matGroups[key] = { m, surfaces:[], totalArea:0 };
+    matGroups[key].surfaces.push(`${p.surfLabel} (${parseFloat(p.area).toFixed(1)} m²)`);
+    matGroups[key].totalArea += parseFloat(p.area);
+  });
+
+  Object.entries(matGroups).forEach(([key, g]) => {
+    const thick = g.m.thickness || '—';
+    const sysD = g.m.systemDepth ? (g.m.systemDepth[mount] || g.m.systemDepth.A) : '—';
+    rows.push({
+      name: g.m.name, cat: 'Absorbente',
+      surfaces: g.surfaces.join(' · '),
+      neto: g.totalArea, total: g.totalArea * WASTE, unit: 'm²',
+      thick, sysD,
+      obs: `${g.m.fire.split('/')[0]} · NRC=${g.m.NRC}`
+    });
+  });
+
+  // Sellador acústico
+  const sealer=2*(d.L+d.W+d.H*4)*1.1;
+  rows.push({name:'Sellador Acústico Acrílico (Tremco/SikaBond)',cat:'Acabados',neto:sealer,total:sealer*1.05,unit:'ml',thick:'—',sysD:'—',obs:'Perímetro de particiones y luminarias'});
+  rows.push({name:'Burlete Perimetral Puertas (tipo labio)',cat:'Acabados',neto:4*(+document.getElementById('doorArea').value||2)*1.5,total:4*(+document.getElementById('doorArea').value||2)*1.5*1.05,unit:'ml',thick:'—',sysD:'—',obs:'Perfil de silicona + umbral automático'});
+  rows.push({name:'Sistema de Suspensión Techo (T-Grid)',cat:'Montaje',neto:d.L*d.W/1.4,total:d.L*d.W/1.4*1.05,unit:'ml',thick:'—',sysD:'100+',obs:'Plenum mín. 100mm · Rieles primarios + secundarios + colgadores'});
+  rows.push({name:'Banda Resiliente Anti-vibración (Kinetics RIM)',cat:'Montaje',neto:2*(d.L+d.W)*2,total:2*(d.L+d.W)*2*1.05,unit:'ml',thick:'10',sysD:'10',obs:'Entre estructura y partición — control flanking'});
+  rows.push({name:'Perfil Omega para panel en muro',cat:'Montaje',neto:proposals.filter(p=>p.surfId&&p.surfId.includes('pared')).reduce((a,p)=>a+p.area,0)/0.6,total:proposals.filter(p=>p.surfId&&p.surfId.includes('pared')).reduce((a,p)=>a+p.area,0)/0.6*1.05,unit:'ml',thick:'—',sysD:'—',obs:'Estructura porta-paneles en muro'});
+
+  document.getElementById('quantityRows').innerHTML=`
+    <div class="qt-row qt-h" style="grid-template-columns:1.8fr 1.2fr .5fr .5fr .6fr .6fr .8fr">
+      <span>Material [Categoría]</span>
+      <span>Superficies</span>
+      <span style="text-align:right">Panel mm</span>
+      <span style="text-align:right">Sist. mm</span>
+      <span style="text-align:right">Neto</span>
+      <span style="text-align:right">+5%</span>
+      <span style="text-align:right">Nota</span>
+    </div>
+  `+rows.map(r=>`
+    <div class="qt-row" style="grid-template-columns:1.8fr 1.2fr .5fr .5fr .6fr .6fr .8fr">
+      <span style="font-size:.7rem">${r.name} <span style="color:var(--text-secondary);font-size:.6rem">[${r.cat}]</span></span>
+      <span style="font-size:.62rem;color:var(--amber)">${r.surfaces||'—'}</span>
+      <span style="text-align:right;font-family:var(--fm);font-size:.7rem;color:var(--teal)">${r.thick}</span>
+      <span style="text-align:right;font-family:var(--fm);font-size:.7rem;color:var(--purple)">${r.sysD}</span>
+      <span class="qt-v">${r.neto.toFixed(1)} ${r.unit}</span>
+      <span class="qt-v">${r.total.toFixed(1)} ${r.unit}</span>
+      <span style="text-align:right;font-size:.62rem;color:var(--text-secondary)">${r.obs}</span>
+    </div>`).join('');
+}
+
+function generateMaterialMap(proposals){
+  const map=document.getElementById('materialMap');
+  const slots=[
+    {label:'Pared F.',key:'pared_frontal'},{label:'Techo',key:'techo'},{label:'Pared P.',key:'pared_posterior'},
+    {label:'Pared I.',key:'pared_izq'},{label:'SALA',key:null},{label:'Pared D.',key:'pared_der'},
+    {label:'',key:null},{label:'Piso',key:'piso'},{label:'',key:null}
+  ];
+  const surfMap={};
+  proposals.forEach(p=>{
+    if(p.surfId && !surfMap[p.surfId]) surfMap[p.surfId]=p.matKey;
+  });
+  SURFACES.forEach(s=>{ const k=document.getElementById(`mat_${s.id}`)?.value; if(k&&!surfMap[s.id]) surfMap[s.id]=k; });
+
+  map.innerHTML=slots.map(sl=>{
+    if(!sl.key) return `<div class="smap-cell center-cell" style="${sl.label==='SALA'?'border-color:var(--teal);color:var(--teal);font-family:var(--fd);font-weight:700':''}">${sl.label}</div>`;
+    const mk=surfMap[sl.key];
+    const m=mk&&MAT[mk];
+    return `<div class="smap-cell">
+      <strong>${sl.label}</strong>
+      <span class="area">${getArea((SURFACES.find(s=>s.id===sl.key)||{}).factor||'LW',G.d||getDims()).toFixed(1)} m²</span>
+      <span class="mat">${m?m.short:'—'}</span>
+      ${m&&m.thickness?`<span style="font-family:var(--fm);font-size:.58rem;color:var(--purple);display:block;margin-top:.1rem">${m.thickness}mm panel</span>`:''}
+    </div>`;
+  }).join('');
+}
+
+function applyRecommendedMaterials(){
+  if(!G.rt) calculateAll();
+  generateRecommendations();
+  // Read proposals generated above and apply each surfId → matKey
+  // Re-run generateRecommendations internally to get proposals array
+  // Since proposals are rendered to DOM, we re-derive them by re-calling the engine
+  // The simplest approach: trigger calculateAll then generateRecommendations which sets DOM
+  // and also updates G — we rely on the map that was already built in generateMaterialMap
+  // We parse the surfMap from the current proposal output
+  if(!G.rt){ calculateAll(); }
+  const {rt,spl,sti,modal,stc,target,d} = G;
+  const mount = document.getElementById('mountType')?.value || 'E';
+  const RT = rt.RT, rMid = Math.sqrt(RT[3]*RT[4]);
+  const sDiff = (rMid-target.rt)/target.rt;
+  const deficitA = sDiff > 0.15 ? (0.161*rt.V/target.rt) - rt.A[3] : 0;
+  const areas = {
+    techo:d.L*d.W, piso:d.L*d.W,
+    pared_frontal:d.W*d.H, pared_posterior:d.W*d.H,
+    pared_izq:d.L*d.H, pared_der:d.L*d.H
+  };
+
+  // Techo
+  const alpNeeded = deficitA / areas.techo;
+  let matTecho = G.use==='estudio' ? 'melamina50' : alpNeeded>0.65?'lm100':alpNeeded>0.30?'lm50':deficitA>0?'lm50':'lm25';
+  document.getElementById('mat_techo').value = matTecho;
+
+  // Piso
+  const pisoMap = {estudio:'alfombra_g',consultorio:'alfombra_g',oficina:'alfombra_f',open_office:'alfombra_f',sala_reuniones:'alfombra_f',aula:'vinilico',restaurante:'vinilico',auditorio:'alfombra_f'};
+  document.getElementById('mat_piso').value = pisoMap[G.use] || 'ceramico';
+
+  // Pared posterior — absorbente
+  const alpNeededPost = deficitA > 0 ? 'lm50' : 'pet25';
+  document.getElementById('mat_pared_posterior').value = G.use==='estudio'?'melamina50':G.use==='auditorio'?'lm100':alpNeededPost;
+
+  // Pared frontal — semi-reflectante estético
+  const frontMap = {estudio:'melamina50',auditorio:'madera_perf',aula:'madera_perf'};
+  document.getElementById('mat_pared_frontal').value = frontMap[G.use] || 'madera_ran';
+
+  // Paredes laterales
+  let matLat = deficitA>(areas.pared_izq+areas.pared_der)*0.3 ? (G.use==='estudio'?'melamina50':'lm50') : deficitA>5?'pet25':'madera_ran';
+  document.getElementById('mat_pared_izq').value = matLat;
+  document.getElementById('mat_pared_der').value = matLat;
+
+  SURFACES.forEach(s=>updateAlphaPreview(s.id));
+  calculateAll();
+  showToast('✓ Materiales recomendados aplicados');
+}
+
+/* ════════════════ EXPEDIENTE WELL ════════════════ */
+function generateWELL(){
+  if(!G.rt) return;
+  const {rt,sti,stc,spl,modal,target,d,use}=G;
+  const RT=rt.RT, rMid=Math.sqrt(RT[3]*RT[4]);
+  const rtOk=Math.abs(rMid-target.rt)/target.rt<.2;
+  const stiN=parseFloat(sti.sti), stiOk=stiN>=target.stiMin, stcOk=stc.stcC>=target.stc;
+  const score=Math.round(([rtOk,stiOk,stcOk,spl.cov!=='Pobre',modal.boltOk||modal.loudenOk].filter(Boolean).length/5)*100);
+
+  const el=id=>document.getElementById(id);
+  el('rptTitle').textContent=target.label;
+  el('rptMeta').textContent=`Dimensiones: ${d.L.toFixed(1)} × ${d.W.toFixed(1)} × ${d.H.toFixed(1)} m · Vol: ${rt.V.toFixed(1)} m³ · Área: ${(2*(d.L*d.W+d.W*d.H+d.L*d.H)).toFixed(1)} m²`;
+
+  const c=score>=80?'mg':score>=60?'mw':'mb';
+  el('w_score').textContent=score+'%'; el('w_score').className='mv '+c;
+  el('w_rt').textContent=rMid.toFixed(2)+'s'; el('w_rt').className='mv '+(rtOk?'mg':'mb');
+  el('w_sti').textContent=sti.qual; el('w_sti').className='mv '+(stiOk?'mg':stiN>=.45?'mw':'mb');
+  el('w_stc').textContent='STC '+stc.stcC; el('w_stc').className='mv '+(stcOk?'mg':'mb');
+
+  // Oído
+  el('w_audio').innerHTML=[
+    [rtOk,'RT₆₀ Medio WELL A09',`${rMid.toFixed(2)}s vs objetivo ${target.rt}s`,rtOk?'Dentro del ±20% ISO 3382 — cumple':'Excede tolerancia — revisar selección de materiales'],
+    [stiOk,'STI Inteligibilidad WELL A05',`${sti.sti} (${sti.qual}) — SNR: ${sti.SNR}dB`,stiOk?`Cumple WELL A05 ≥ ${target.stiMin} · Señal: ${sti.Ls}dB·A (${sti.signalNote||'auto'})`:`Requiere mayor absorción o menor ruido de fondo`],
+    [stcOk,'STC Privacidad WELL A07',`STC ${stc.stcC} (req. ≥${target.stc})`,stcOk?'Privacidad acústica garantizada':'Insuficiente — revisar particiones'],
+    [RT[3]<target.rt*1.25,'RT₆₀ @ 500Hz',`${RT[3].toFixed(2)}s`,RT[3]<target.rt*1.2?'Adecuado para inteligibilidad':'Elevado — riesgo de inteligibilidad reducida'],
+    [spl.cov!=='Pobre','Distribución SPL',`${spl.cov} · Dc=${spl.Dc.toFixed(1)}m`,spl.cov==='Excelente'||spl.cov==='Buena'?'Cobertura sonora uniforme':'Cobertura deficiente — aumentar absorción']
+  ].map(([ok,t,v,d])=>ciHTML(ok,t,v,d)).join('');
+
+  // Vista
+  const matKeys=SURFACES.map(s=>document.getElementById(`mat_${s.id}`)?.value).filter(Boolean);
+  const lrvs=matKeys.map(k=>MAT[k]?.lrv||0);
+  const avgLRV=lrvs.reduce((a,b)=>a+b,0)/lrvs.length;
+  el('w_visual').innerHTML=[
+    [avgLRV>=35&&avgLRV<=75,'LRV Promedio Materiales WELL L07',`${avgLRV.toFixed(0)}%`,'Rango óptimo: techo 70-90%, muros 40-70%, piso 20-40%'],
+    ...matKeys.slice(0,4).map(k=>{const m=MAT[k];return m?[m.lrv>=35&&m.lrv<=75,m.name.substring(0,35),`LRV: ${m.lrv}%`,m.lrv>=35&&m.lrv<=75?'LRV en rango WELL':'Fuera del rango sugerido']:null;}).filter(Boolean)
+  ].map(([ok,t,v,d])=>ciHTML(ok,t,v,d)).join('');
+
+  // Tacto/Olfato
+  const vocFail=matKeys.filter(k=>MAT[k]?.voc?.includes('Verificar'));
+  el('w_mat').innerHTML=[
+    [vocFail.length===0,'Low-VOC WELL X05',`${matKeys.length-vocFail.length}/${matKeys.length} materiales certificados`,vocFail.length===0?'Todos cumplen TVOC<50μg/m³':'Revisar: '+vocFail.map(k=>MAT[k]?.name.substring(0,20)).join(', ')],
+    [true,'Ventilación ASHRAE 62.1',`${(rt.V*0.3/60).toFixed(1)} L/s recomendado`,`Para ${rt.V.toFixed(0)}m³ — cambios de aire: ${((rt.V*0.3/60)/(rt.V/3600)).toFixed(1)} ACH`],
+    [true,'Ruido HVAC',`NC recomendado: ${target.nc} dBA`,`Sistema de ventilación debe operar <${target.nc} dBA en el espacio`]
+  ].map(([ok,t,v,d])=>ciHTML(ok,t,v,d)).join('');
+
+  // Cómputo
+  if(G.rt) generateQuantityTable([{surf:'Techo',matKey:'lm50',area:d.L*d.W},{surf:'Piso',matKey:'ceramico',area:d.L*d.W}],{},d);
+  el('w_qty').innerHTML=document.getElementById('quantityRows')?.innerHTML||'Genere primero la propuesta.';
+}
+
+function ciHTML(ok,title,val,detail){
+  const cls=ok?'cok':'cwarn', sym=ok?'✓':'△';
+  return `<div class="ci"><div class="ci-check ${cls}">${sym}</div><div class="ci-body"><div class="ci-t">${title} <span style="font-family:var(--fm);font-size:.72rem;color:var(--teal)">${val}</span></div><div class="ci-d">${detail}</div></div></div>`;
+}
+
+/* ════════ CHART OPTIONS HELPER ════════ */
+function chartOpts(xLabel='',yLabel='',yMin=undefined,yMax=undefined){
+  return {
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{labels:{color:'#7a8fad',font:{family:'Space Mono',size:9}}},
+      tooltip:{backgroundColor:'rgba(10,14,26,.96)',titleColor:'#00e5cc',bodyColor:'#e8edf5'}},
+    scales:{
+      x:{ticks:{color:'#7a8fad',font:{family:'Space Mono',size:9}},grid:{color:'rgba(0,229,204,.05)'},title:{display:!!xLabel,text:xLabel,color:'#7a8fad',font:{family:'Space Mono',size:8}}},
+      y:{ticks:{color:'#7a8fad',font:{family:'Space Mono',size:9}},grid:{color:'rgba(0,229,204,.05)'},title:{display:!!yLabel,text:yLabel,color:'#7a8fad',font:{family:'Space Mono',size:8}},...(yMin!==undefined?{min:yMin}:{}),...(yMax!==undefined?{max:yMax}:{})}
+    }
+  };
+}
+
+function selectMount(val){
+  document.getElementById('mountType').value=val;
+  document.getElementById('mopt_A').classList.toggle('selected', val==='A');
+  document.getElementById('mopt_E').classList.toggle('selected', val==='E');
+  // Update border styles directly
+  const a=document.getElementById('mopt_A'), e=document.getElementById('mopt_E');
+  if(val==='A'){
+    a.style.border='2px solid var(--teal)'; a.style.background='rgba(0,229,204,.07)';
+    e.style.border='2px solid rgba(0,229,204,.15)'; e.style.background='rgba(0,0,0,.2)';
+  } else {
+    e.style.border='2px solid var(--teal)'; e.style.background='rgba(0,229,204,.07)';
+    a.style.border='2px solid rgba(0,229,204,.15)'; a.style.background='rgba(0,0,0,.2)';
+  }
+  SURFACES.forEach(s=>updateAlphaPreview(s.id));
+}
+
+/* ════════ NAVIGATION ════════ */
+function showSec(id){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id)?.classList.add('active');
+  const tabs=['dashboard','entrada','resultados','recomendaciones','expediente'];
+  document.querySelectorAll('.nav-tab')[tabs.indexOf(id)]?.classList.add('active');
+  if(id==='modal'&&G.modal) setTimeout(()=>drawModes(G.modal),50);
+}
+
+function showPanel(id){
+  document.querySelectorAll('.inner-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.inner-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id)?.classList.add('active');
+  const tabs=['p_rt','p_spl','p_sti','p_modal','p_stc'];
+  document.querySelectorAll('.inner-tab')[tabs.indexOf(id)]?.classList.add('active');
+  if(id==='p_modal'&&G.modal) setTimeout(()=>drawModes(G.modal),50);
+}
+
+function resetForm(){
+  ['dimL','dimW','dimH'].forEach((id,i)=>{document.getElementById(id).value=[8.5,6.2,3.1][i];});
+  document.getElementById('roomUse').value='oficina';
+  document.getElementById('mountType').value='E';
+  document.getElementById('bgNoise').value=35;
+  document.getElementById('sigLevel').value=65;
+  resetMaterials();updateDerived();updateTargets();
+}
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+window.addEventListener('load',()=>setTimeout(calculateAll,500));
+</script>
+</body>
+</html>
